@@ -1,18 +1,19 @@
 # -*- coding:utf-8 -*-
 import urllib
 import urllib2
+import string
 # from import 方式引入的，使用时可以省略module名
 from bs4 import BeautifulSoup
 from Author import *
 from Category import *
+from DBQuery import *
 
-# 解析诗词名句网(http://www.shicimingju.com/)的信息.
-
-
+"""
+ 解析诗词名句网(http://www.shicimingju.com/)的信息, 并存入mongodb
+"""
 class DataShicimingju:
     def __init__(self):
         self.URL = "http://www.shicimingju.com"
-
 
     # 获取年代. http://www.shicimingju.com/左侧的年代诗人.
     # 返回值形式 {"先秦":"/category/xianqinshiren"}
@@ -46,7 +47,8 @@ class DataShicimingju:
         return categories
         
     # 获取年代内的诗人. http://www.shicimingju.com/category/xianqinshiren
-    def get_authors(self, categoryurl):
+    def get_authors(self, category):
+        categoryurl = category.url
         print "categoryurl: ", categoryurl
         if not categoryurl:
             print "categoryurl is empty, return now..."
@@ -64,7 +66,11 @@ class DataShicimingju:
                 return None
         authors = []
         soup = BeautifulSoup(authorspage)
-        # #middlediv > div > div > ul > li:nth-child(1) > a > span
+        # 年代内的诗人数目. #niandai_title
+        catetitle = unicode(soup.select("#niandai_title")[0].string)
+
+        numofauthors = string.atoi(catetitle[catetitle.index("(") + 1:-2].encode('utf-8'))
+        category.numofauthors = numofauthors
         allauthors = soup.select("#middlediv > div > div > ul > li")
         for author in allauthors:
             atag = author.select("a")
@@ -73,20 +79,38 @@ class DataShicimingju:
             authorname = atag[0].contents[0]
             authorurl = atag[0]["href"]
             # 最后需要去掉前后()
-            numofpoems = atag[0].contents[1].string[1:-1]
+            numofpoems = string.atoi(atag[0].contents[1].string[1:-1])
             author = Author()
             author.name = authorname
             author.url = authorurl
             author.numofpoems = numofpoems
+            author.category = category.name
             authors.append(author)
         return authors
 
+    def persist(author):
+        print author
+        authorname = author.name
+        authorurl = author.url
+        numofpoems = author.numofpoems
+        category = author.category
+        # 查询是否已经全部存在
+        
+        
+
+
+"""
 spider = DataShicimingju()
 
 categories = spider.get_categories()
 for cate in categories:
     print cate
 
-authors = spider.get_authors(categories[0].url)
+authors = spider.get_authors(categories[0])
 for author in authors:
     print author
+print categories[0]
+"""
+
+# 这种方式调用必须使用from import方式引入.
+DBQuery.allauthorpoems()
