@@ -17,10 +17,7 @@ class Author:
     # 简介
     brief = ""
 
-    # 所属年代
-    category = ""
-
     # 内置方法，方便输出.
     def __str__(self):
         return "name=" + self.name.encode('utf-8')  + ", " + "numofpoems=" + str(self.numofpoems) + ", " \
-                + "url=" + self.url + ", " + "brief:" + str(len(self.brief)) + ", " + "category:" + category
+                + "url=" + self.url + ", " + "brief:" + str(len(self.brief))
