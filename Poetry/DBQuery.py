@@ -11,7 +11,7 @@ class DBQuery(object):
     def authorpoemscount(self, categoryname, authorname, authorurl):
         # 这种方式调用, 必须使用 from import 来引入.
         db = Mongo(database='poetry')
-        db.poem.find({"category.name" : categoryname, "author.name" : authorname, "author.url": author.url}).count()
+        db.poem.find({"category.name" : categoryname, "author.name" : authorname, "author.url": authorurl}).count()
 
     # 查询某位诗人某首诗是否存在.
     @classmethod

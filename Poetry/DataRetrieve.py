@@ -87,22 +87,20 @@ class DataShicimingju:
             author.name = authorname
             author.url = authorurl
             author.numofpoems = numofpoems
-            author.category = category.name
             authors.append(author)
         return authors
 
     # 获取某个作者的所有诗列表.
-    def get_author_poems(self, author):
+    def get_author_poems(self, categoryname, author):
         print author
-        # {"name" : "aa", "numofpoems" : 27, "url" : "/chaxun/zuozhe/67.html"} 这样构造author,
-        # 不明白为什么不可以用author.name访问.
-        authorname = author["name"]
-        authorurl = author["url"]
-        numofpoems = author["numofpoems"]
-        category = author["category"]
+        # {"name" : "aa", "numofpoems" : 27, "url" : "/chaxun/zuozhe/67.html"} 这样构造author, 这种赋值方式只能使用
+        # author["name"]来访问，不可以author.name,因为Author中没有 __getitem__方法. 而dict中有.
+        authorname = author.name
+        authorurl = author.url
+        numofpoems = author.numofpoems
         # 查询是否已经全部存在
         # 这种方式调用必须使用from import方式引入.
-        existednum = DBQuery.authorpoemscount(category, authorname, authorurl)
+        existednum = DBQuery.authorpoemscount(categoryname, authorname, authorurl)
         if(existednum == numofpoems):
             print "已存在", authorname, "的", numofpoems, "首诗."
             return None
@@ -131,15 +129,18 @@ class DataShicimingju:
                 return allpoems
             soup = BeautifulSoup(authorpage)
             # 诗人简介
+            brief = ""
             if(i == 1):
-                allbrief = str(soup.select("#middlediv > div.jianjie.yuanjiao > div ")[0])
-                pattern = re.compile('.*?<img.*?/>(.*?)</div>', re.S)        
-                matchobj = re.search(pattern, allbrief)
+                brieftext = soup.select("#middlediv > div.jianjie.yuanjiao > div ")
                 # 有的不存在简介.
-                if matchobj:
-                    print "not empty."
-                    brief = matchobj.group(1).strip()
-                    author["brief"] = brief
+                if brieftext:
+                    allbrief = str(brieftext[0])
+                    pattern = re.compile('.*?<img.*?/>(.*?)</div>', re.S)        
+                    matchobj = re.search(pattern, allbrief)
+                    if matchobj:
+                        print "not empty."
+                        brief = matchobj.group(1).strip()
+                        author.brief = brief
                 print "brief:", brief
             # 诗列表 #chaxun_miao > div.shicilist > ul:nth-child(1)
             allpoemtext = soup.select("#chaxun_miao > div.shicilist > ul")
@@ -151,17 +152,14 @@ class DataShicimingju:
                 line1 = poemul.select("> li:nth-of-type(1) > a")
                 poem.url = line1[0]["href"]
                 poem.name = line1[0].string
-                poem.precontent = poemul.select("> li:nth-of-type(3)")[0].string
                 allpoems.append(poem)
         return allpoems
 
     # 获取诗词正文.
     def get_poem_content(self, categoryname, authorname, poem):
         print poem
-
-        poemname = poem["name"]
-        poemurl = poem["url"]
-        poemprecontent = poem["precontent"]
+        poemname = poem.name
+        poemurl = poem.url
         # 查询是否已经存在
         existednum = DBQuery.authorpoemcount(categoryname, authorname, poemname, poemurl)
         print "existednum: ", existednum
@@ -199,32 +197,32 @@ class DataShicimingju:
         # 去掉不需要的.
         for appreciationtemp in originalappreciation[2 : len(originalappreciation) - 3]:
             appreciation += appreciationtemp.encode('utf-8')
-        poem["content"] = content
-        poem["tags"] = tags
-        poem["appreciation"] = appreciation
+        poem.content = content
+        poem.tags = tags
+        poem.appreciation = appreciation
         return None
             
     # 存入mongodb
-    def persist(self, author, poem):
-        categories = get_categories()
+    def persist(self):
+        categories = self.get_categories()
         if not categories:
             print "年代为空，返回."
             return None
         for category in categories:
             print "正在处理: ", category
-            authors = get_authors(category)
+            authors = self.get_authors(category)
             if not authors:
                 print "该年代作者为空，跳过该年代. categoryurl:", category.url
                 continue
             for author in authors:
                 print "正在处理 ", author
-                poems = get_author_poems(author)
+                poems = self.get_author_poems(category.name, author)
                 if not poems:
                     print "该作者诗词为空或已存在，跳过该作者. authorurl:", author.url
                     continue
                 for poem in poems:
                     print "正在处理:", poem
-                    get_poem_content(category.name, author.name, poem)
+                    self.get_poem_content(category.name, author.name, poem)
                     # 不存在插入，存在更新poem列表.
                     existedpoems = DBQuery.authorpoems(category.name, author.name)
                     if existedpoems:

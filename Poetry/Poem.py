@@ -10,9 +10,6 @@ class Poem:
     # 所在的url
     url = ""
 
-    # 正文的开头部分
-    precontent = ""
-
     # 正文
     content = ""
 

@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 from DataRetrieve import *
+from Author import *
 
 """
  DataShicimingju测试util
@@ -19,9 +20,13 @@ def test_get_authors():
     print categories[0]
 
 def test_get_author_poems():
-    author = {"name" : "屈原", "numofpoems" : 27, "url" : "/chaxun/zuozhe/67.html", "brief" : "", \
-              "category" : "先秦"}
-    poems = spider.get_author_poems(author)
+    author = Author()
+    author.name = "屈原"
+    author.numofpoems = 27
+    author.url = "/chaxun/zuozhe/67.html"
+    author.brief = ""
+    categoryname = "先秦"
+    poems = spider.get_author_poems(categoryname, author)
     if not poems:
         print "没有诗词"
     for poem in poems:
@@ -36,11 +41,12 @@ def test_get_poem_content():
     print poem
 
 def test_persist():
-    print "aaa"
+    spider.persist()
  
 
 
 #test_get_categories()
 #test_get_authors()
 #test_get_author_poems()
-test_get_poem_content()
+#test_get_poem_content()
+test_persist()
