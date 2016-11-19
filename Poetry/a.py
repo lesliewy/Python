@@ -1,19 +1,4 @@
-# -*- coding:utf-8 -*-
-from Mongo import *
-from Category import *
-from Author import *
-from Poem import *
-
-"""
- mongodb 修改操作.
-"""
-class DBChange(object):
-
-    @classmethod
-    def persist(self, category, author, poem):
-        # 这种方式调用, 必须使用 from import 来引入.
-        db = Mongo(database='poetry')
-        db.poem.insert_one(
+db.poem.insert_one(
             {
                 "category": {
                     "name": category.name,
@@ -37,12 +22,3 @@ class DBChange(object):
                 ]
             }
         )
-
-    @classmethod
-    def updateauthorpoems(self, categoryname, authorname, authorurl, poem):
-        db = Mongo(database='poetry')
-        db.poem.update_one(
-            {"category.name": categoryname, "author.name": authorname, "author.url" : authorurl},
-            {"$push": {"poems": poem.__dict__}}
-        )
-

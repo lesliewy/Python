@@ -5,10 +5,12 @@ import string
 import re
 # from import 方式引入的，使用时可以省略module名
 from bs4 import BeautifulSoup
-from Author import *
+from bs4 import NavigableString
 from Category import *
-from DBQuery import *
+from Author import *
 from Poem import *
+from DBQuery import *
+from DBChange import *
 
 """
  解析诗词名句网(http://www.shicimingju.com/)的信息, 并存入mongodb
@@ -27,7 +29,7 @@ class DataShicimingju:
             # 利用urlopen获取页面代码
             response = urllib2.urlopen(request, timeout = self.timeout)
             # 将页面转化为UTF-8编码
-            agepage = response.read()
+            agepage = response.read().decode('utf-8')
             if not agepage:
                 print u"获取年代信息页面出错."
         except urllib2.URLError, e:
@@ -44,7 +46,7 @@ class DataShicimingju:
             catename = atag[0].string
             cateurl = atag[0]["href"]
             category = Category()
-            category.name = catename
+            category.name = catename.encode('utf-8')
             category.url = cateurl
             categories.append(category)
         return categories
@@ -52,7 +54,6 @@ class DataShicimingju:
     # 获取年代内的诗人. http://www.shicimingju.com/category/xianqinshiren
     def get_authors(self, category):
         categoryurl = category.url
-        print "categoryurl: ", categoryurl
         if not categoryurl:
             print "categoryurl is empty, return now..."
             return None
@@ -79,7 +80,7 @@ class DataShicimingju:
             atag = author.select("a")
             # tag 的 .content 属性可以将tag的子节点以列表的方式输出, 而.children返回一个 list 生成器对象,使用
             # for child in  soup.body.children: 这种方式
-            authorname = atag[0].contents[0]
+            authorname = atag[0].contents[0].encode('utf-8')
             authorurl = atag[0]["href"]
             # 最后需要去掉前后()
             numofpoems = string.atoi(atag[0].contents[1].string[1:-1])
@@ -92,7 +93,6 @@ class DataShicimingju:
 
     # 获取某个作者的所有诗列表.
     def get_author_poems(self, categoryname, author):
-        print author
         # {"name" : "aa", "numofpoems" : 27, "url" : "/chaxun/zuozhe/67.html"} 这样构造author, 这种赋值方式只能使用
         # author["name"]来访问，不可以author.name,因为Author中没有 __getitem__方法. 而dict中有.
         authorname = author.name
@@ -111,9 +111,8 @@ class DataShicimingju:
         i = 0
         while i <= 1000:
             i += 1
-            print i
             if(i > 1):
-                fullauthorurl = fullauthorurl.replace(".html", "_" + str(i) + ".html")
+                fullauthorurl = re.sub(re.compile("(_\d*)?\.html"), "_" + str(i) + ".html", fullauthorurl)
 
             try:
                 request = urllib2.Request(fullauthorurl)
@@ -134,11 +133,10 @@ class DataShicimingju:
                 brieftext = soup.select("#middlediv > div.jianjie.yuanjiao > div ")
                 # 有的不存在简介.
                 if brieftext:
-                    allbrief = str(brieftext[0])
-                    pattern = re.compile('.*?<img.*?/>(.*?)</div>', re.S)        
+                    allbrief = brieftext[0].encode('utf-8')
+                    pattern = re.compile('.*?<img.*?>(.*?)</div>', re.S)        
                     matchobj = re.search(pattern, allbrief)
                     if matchobj:
-                        print "not empty."
                         brief = matchobj.group(1).strip()
                         author.brief = brief
                 print "brief:", brief
@@ -146,26 +144,24 @@ class DataShicimingju:
             allpoemtext = soup.select("#chaxun_miao > div.shicilist > ul")
             if not allpoemtext:
                 print "没有诗存在，返回"
-                return None
+                return allpoems
             for poemul in allpoemtext:
                 poem = Poem()
                 line1 = poemul.select("> li:nth-of-type(1) > a")
                 poem.url = line1[0]["href"]
-                poem.name = line1[0].string
+                poem.name = line1[0].string.encode('utf-8')
                 allpoems.append(poem)
         return allpoems
 
     # 获取诗词正文.
     def get_poem_content(self, categoryname, authorname, poem):
-        print poem
         poemname = poem.name
         poemurl = poem.url
         # 查询是否已经存在
         existednum = DBQuery.authorpoemcount(categoryname, authorname, poemname, poemurl)
-        print "existednum: ", existednum
         if(existednum > 0):
             print "已存在", authorname, "的", poemname
-            return None
+            return False
 
         fullpoemurl = self.URL + poemurl
         try:
@@ -177,7 +173,7 @@ class DataShicimingju:
         except urllib2.URLError, e:
             if hasattr(e, "reason"):
                 print u"获取诗正文失败:",  fullpoemurl, " 错误原因", e.reason
-                return None
+                return False
         soup = BeautifulSoup(poempage)
         # 诗词内容 #shicineirong
         originalcontent = soup.select("#shicineirong")[0].contents
@@ -195,12 +191,17 @@ class DataShicimingju:
         appreciation = ""
         originalappreciation = soup.select("#middlediv > div:nth-of-type(2)")[0].contents
         # 去掉不需要的.
-        for appreciationtemp in originalappreciation[2 : len(originalappreciation) - 3]:
+        tailindex = len(originalappreciation) - 2
+        str1 = originalappreciation[len(originalappreciation) - 3]
+        if (isinstance(str1, NavigableString) and str1.startswith('[url=http')):
+            tailindex = len(originalappreciation) - 3
+
+        for appreciationtemp in originalappreciation[2 : tailindex]:
             appreciation += appreciationtemp.encode('utf-8')
         poem.content = content
         poem.tags = tags
         poem.appreciation = appreciation
-        return None
+        return True
             
     # 存入mongodb
     def persist(self):
@@ -214,19 +215,23 @@ class DataShicimingju:
             if not authors:
                 print "该年代作者为空，跳过该年代. categoryurl:", category.url
                 continue
+            i = 0
             for author in authors:
-                print "正在处理 ", author
+                i += 1
+                print "author ", i, " 正在处理 ", author
                 poems = self.get_author_poems(category.name, author)
                 if not poems:
                     print "该作者诗词为空或已存在，跳过该作者. authorurl:", author.url
                     continue
+                j = 0
                 for poem in poems:
-                    print "正在处理:", poem
-                    self.get_poem_content(category.name, author.name, poem)
+                    j += 1
+                    print "poem ", j, " 正在处理:", poem
+                    if not self.get_poem_content(category.name, author.name, poem):
+                        continue
                     # 不存在插入，存在更新poem列表.
-                    existedpoems = DBQuery.authorpoems(category.name, author.name)
-                    if existedpoems:
-                        existedpoems.append(poem)
-                        DBChange.updateauthorpoems(category.name, author.name, author.url, existedpoems)
+                    existedpoemscursor = DBQuery.authorpoems(category.name, author.name, author.url)
+                    if (existedpoemscursor and existedpoemscursor.count() > 0):
+                        DBChange.updateauthorpoems(category.name, author.name, author.url, poem)
                     else:
                         DBChange.persist(category, author, poem)

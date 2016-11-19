@@ -21,6 +21,13 @@ class Poem:
 
     # 内置方法，方便输出.
     def __str__(self):
-        return "name=" + self.name.encode('utf-8')  + ", " + "url=" + self.url + ", " \
-                + "content:" + self.content.encode('utf-8') + ", "  \
-                + "appreciation:" + self.appreciation.encode('utf-8')
+        return "name=" + self.name  + ", " + "url=" + self.url + ", " + "tags=" + self.gettags() + ", "\
+                + "content:" + self.content + ", "  \
+                + "appreciation:" + self.appreciation
+
+    def gettags(self):
+        tags = ""
+        for tag in tags:
+            tags += " " + tag
+        return tags
+

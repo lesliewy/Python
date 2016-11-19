@@ -52,7 +52,7 @@ class Collection(object):
 
     def __getattr__(self, operation):
         # 我这个封装只是为了拦截一部分操作,不符合的就直接raise属性错误
-        control_type = ['disconnect', 'insert', 'insert_one', 'update', 'find', 'find_one']
+        control_type = ['disconnect', 'insert', 'insert_one', 'update', 'find', 'find_one', 'update_one']
         if operation in control_type:
             return getattr(self.collection, operation)
         raise AttributeError(operation)
