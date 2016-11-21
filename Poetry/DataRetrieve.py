@@ -3,6 +3,8 @@ import urllib
 import urllib2
 import string
 import re
+import time
+import socket
 # from import 方式引入的，使用时可以省略module名
 from bs4 import BeautifulSoup
 from bs4 import NavigableString
@@ -18,7 +20,7 @@ from DBChange import *
 class DataShicimingju:
     def __init__(self):
         self.URL = "http://www.shicimingju.com"
-        self.timeout = 5
+        self.timeout = 7
 
     # 获取年代. http://www.shicimingju.com/左侧的年代诗人.
     # 返回值形式 {"先秦":"/category/xianqinshiren"}
@@ -82,10 +84,16 @@ class DataShicimingju:
             # for child in  soup.body.children: 这种方式
             authorname = atag[0].contents[0].encode('utf-8')
             authorurl = atag[0]["href"]
+            # 隋朝最后两位作者有问题，跳过
+            #if len(atag[0].contents) < 2:
+            #    continue
             # 最后需要去掉前后()
             numofpoems = string.atoi(atag[0].contents[1].string[1:-1])
             author = Author()
             author.name = authorname
+            # 隋朝最后两位作者有问题，跳过
+            #if author.name == "佚名":
+            #    continue
             author.url = authorurl
             author.numofpoems = numofpoems
             authors.append(author)
@@ -136,9 +144,13 @@ class DataShicimingju:
                     allbrief = brieftext[0].encode('utf-8')
                     pattern = re.compile('.*?<img.*?>(.*?)</div>', re.S)        
                     matchobj = re.search(pattern, allbrief)
+                    # 有的简介里有作者图片.
                     if matchobj:
                         brief = matchobj.group(1).strip()
                         author.brief = brief
+                    # 不存在图片.
+                    else:
+                        brief = brieftext[0].contents[0].encode('utf-8')
                 print "brief:", brief
             # 诗列表 #chaxun_miao > div.shicilist > ul:nth-child(1)
             allpoemtext = soup.select("#chaxun_miao > div.shicilist > ul")
@@ -164,19 +176,33 @@ class DataShicimingju:
             return False
 
         fullpoemurl = self.URL + poemurl
-        try:
-            request = urllib2.Request(fullpoemurl)
-            response = urllib2.urlopen(request, timeout = self.timeout)
-            poempage = response.read().decode('utf-8')
-            if not poempage:
-                print u"获取诗正文页面出错."
-        except urllib2.URLError, e:
-            if hasattr(e, "reason"):
-                print u"获取诗正文失败:",  fullpoemurl, " 错误原因", e.reason
-                return False
+        trynum = 0
+        while trynum <= 9:
+            trynum += 1
+            try:
+                request = urllib2.Request(fullpoemurl)
+                response = urllib2.urlopen(request, timeout = self.timeout)
+                poempage = response.read().decode('utf-8')
+                if not poempage:
+                    print u"获取诗正文页面出错."
+            except urllib2.URLError, e:
+                if hasattr(e, "reason"):
+                    print u"获取诗正文失败:",  fullpoemurl, " 错误原因", e.reason
+                    return False
+            except socket.error:
+                response.close()
+                response = None
+                time.sleep(15)
+                print trynum, "次timeout"
+                continue
+            else:
+                break
         soup = BeautifulSoup(poempage)
         # 诗词内容 #shicineirong
         originalcontent = soup.select("#shicineirong")[0].contents
+        # test begin
+        #originalcontent = soup.select("#shicineirong > div.para")[0].contents
+        # test end
         content = ""
         for contenttemp in originalcontent:
             # navigatablestring 需要先encode.
@@ -184,12 +210,18 @@ class DataShicimingju:
         # 分类标签 #middlediv > div.zhuti.yuanjiao > div.listscmk > a:nth-child(1)
         tags = []
         tagstext = soup.select("#middlediv > div.zhuti.yuanjiao > div.listscmk > a")
+        # test begin
+        #tagstext = soup.select("#shicineirong > div.listscmk > a")
+        # test end
         if tagstext:
             for tag in tagstext:
                 tags.append(tag.string)
         # 赏析 #middlediv > div:nth-child(2)
         appreciation = ""
         originalappreciation = soup.select("#middlediv > div:nth-of-type(2)")[0].contents
+        # test begin
+        #originalappreciation = soup.select("#middlediv > div > div:nth-of-type(3)")[0].contents
+        # test end
         # 去掉不需要的.
         tailindex = len(originalappreciation) - 2
         str1 = originalappreciation[len(originalappreciation) - 3]
@@ -210,6 +242,9 @@ class DataShicimingju:
             print "年代为空，返回."
             return None
         for category in categories:
+            if category.name in ["先秦", "汉朝", "魏晋", "南北朝", "隋朝"]:
+                print category.name, "处理完了, 跳过."
+                continue
             print "正在处理: ", category
             authors = self.get_authors(category)
             if not authors:
@@ -218,6 +253,10 @@ class DataShicimingju:
             i = 0
             for author in authors:
                 i += 1
+                if author.name in ["白居易", "杜甫", "李白", "齐己", "刘禹锡", "徐铉", "元稹", "韦应物", \
+                "李商隐", "贯休", "杜牧", "刘长卿", "陆龟蒙", "皎然", "罗隐", "姚合", "许浑"]:
+                    print author.name, "处理完了, 跳过."
+                    continue
                 print "author ", i, " 正在处理 ", author
                 poems = self.get_author_poems(category.name, author)
                 if not poems:
@@ -226,7 +265,8 @@ class DataShicimingju:
                 j = 0
                 for poem in poems:
                     j += 1
-                    print "poem ", j, " 正在处理:", poem
+
+                    print "poem", j, "/", author.numofpoems,  "正在处理:", poem
                     if not self.get_poem_content(category.name, author.name, poem):
                         continue
                     # 不存在插入，存在更新poem列表.
@@ -235,3 +275,8 @@ class DataShicimingju:
                         DBChange.updateauthorpoems(category.name, author.name, author.url, poem)
                     else:
                         DBChange.persist(category, author, poem)
+
+                    #test begin
+                    #if poem.name == '行路难 其二':
+                    #    return;
+                    #test end
