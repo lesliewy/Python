@@ -60,43 +60,68 @@ class DataShicimingju:
             print "categoryurl is empty, return now..."
             return None
         authorsurl = self.URL + categoryurl
-        try:
-            request = urllib2.Request(authorsurl)
-            response = urllib2.urlopen(request, timeout = self.timeout)
-            authorspage = response.read().decode('utf-8')
-            if not authorspage:
-                print u"获取诗人页面出错."
-        except urllib2.URLError, e:
-            if hasattr(e, "reason"):
-                print u"获取诗人页面失败,错误原因", e.reason
-                return None
-        authors = []
-        soup = BeautifulSoup(authorspage)
-        # 年代内的诗人数目. #niandai_title
-        catetitle = unicode(soup.select("#niandai_title")[0].string)
 
-        numofauthors = string.atoi(catetitle[catetitle.index("(") + 1:-2].encode('utf-8'))
-        category.numofauthors = numofauthors
-        allauthors = soup.select("#middlediv > div > div > ul > li")
-        for author in allauthors:
-            atag = author.select("a")
-            # tag 的 .content 属性可以将tag的子节点以列表的方式输出, 而.children返回一个 list 生成器对象,使用
-            # for child in  soup.body.children: 这种方式
-            authorname = atag[0].contents[0].encode('utf-8')
-            authorurl = atag[0]["href"]
-            # 隋朝最后两位作者有问题，跳过
-            #if len(atag[0].contents) < 2:
-            #    continue
-            # 最后需要去掉前后()
-            numofpoems = string.atoi(atag[0].contents[1].string[1:-1])
-            author = Author()
-            author.name = authorname
-            # 隋朝最后两位作者有问题，跳过
-            #if author.name == "佚名":
-            #    continue
-            author.url = authorurl
-            author.numofpoems = numofpoems
-            authors.append(author)
+        authors = []
+        # 循环多次，直到错误页面.
+        i = 0
+        while i <= 1000:
+            i += 1
+            print "authorsurl:", authorsurl
+            if(i > 1):
+                authorsurl = re.sub(re.compile("(/page/\d*)?$"), "/page/" + str(i), authorsurl)
+
+            # 超时重试
+            trynum = 0
+            while trynum <= 9:
+                trynum += 1
+                try:
+                    request = urllib2.Request(authorsurl)
+                    response = urllib2.urlopen(request, timeout = self.timeout)
+                    authorspage = response.read().decode('utf-8')
+                    if not authorspage:
+                        print u"获取诗人页面出错."
+                        return authors
+                except urllib2.URLError, e:
+                    if hasattr(e, "reason"):
+                        print u"获取诗人页面失败,错误原因", e.reason, " 可能已经获取完毕"
+                        return authors
+                except socket.error:
+                    response.close()
+                    response = None
+                    time.sleep(15)
+                    print trynum, "次timeout"
+                    continue
+                else:
+                    break
+            soup = BeautifulSoup(authorspage)
+            # 年代内的诗人数目. #niandai_title
+            catetitle = unicode(soup.select("#niandai_title")[0].string)
+    
+            numofauthors = string.atoi(catetitle[catetitle.index("(") + 1:-2].encode('utf-8'))
+            category.numofauthors = numofauthors
+            allauthors = soup.select("#middlediv > div > div > ul > li")
+            if not allauthors:
+                print "获取诗人列表完毕."
+                return authors
+            for author in allauthors:
+                atag = author.select("a")
+                # tag 的 .content 属性可以将tag的子节点以列表的方式输出, 而.children返回一个 list 生成器对象,使用
+                # for child in  soup.body.children: 这种方式
+                authorname = atag[0].contents[0].encode('utf-8')
+                authorurl = atag[0]["href"]
+                # 隋朝最后两位作者有问题，跳过
+                #if len(atag[0].contents) < 2:
+                #    continue
+                # 最后需要去掉前后()
+                numofpoems = string.atoi(atag[0].contents[1].string[1:-1])
+                author = Author()
+                author.name = authorname
+                # 隋朝最后两位作者有问题，跳过
+                #if author.name == "佚名":
+                #    continue
+                author.url = authorurl
+                author.numofpoems = numofpoems
+                authors.append(author)
         return authors
 
     # 获取某个作者的所有诗列表.
@@ -122,18 +147,30 @@ class DataShicimingju:
             if(i > 1):
                 fullauthorurl = re.sub(re.compile("(_\d*)?\.html"), "_" + str(i) + ".html", fullauthorurl)
 
-            try:
-                request = urllib2.Request(fullauthorurl)
-                response = urllib2.urlopen(request, timeout = self.timeout)
-                authorpage = response.read().decode('utf-8')
-                if not authorpage:
-                    print u"获取", authorname, "诗列表出错:", fullauthorurl
+            # 超时重试
+            trynum = 0
+            while trynum <= 9:
+                trynum += 1
+                try:
+                    request = urllib2.Request(fullauthorurl)
+                    response = urllib2.urlopen(request, timeout = self.timeout)
+                    authorpage = response.read().decode('utf-8')
+                    if not authorpage:
+                        print u"获取", authorname, "诗列表出错:", fullauthorurl
+                        return allpoems
+                except urllib2.URLError, e:
+                    if hasattr(e, "reason"):
+                        print "获取", authorname, "诗列表页面失败:", fullauthorurl, " 错误原因", e.reason, \
+                              " 可能已经获取完毕"
                     return allpoems
-            except urllib2.URLError, e:
-                if hasattr(e, "reason"):
-                    print "获取", authorname, "诗列表页面失败:", fullauthorurl, " 错误原因", e.reason, \
-                          " 可能已经获取完毕"
-                return allpoems
+                except socket.error:
+                    response.close()
+                    response = None
+                    time.sleep(15)
+                    print trynum, "次timeout"
+                    continue
+                else:
+                    break
             soup = BeautifulSoup(authorpage)
             # 诗人简介
             brief = ""
@@ -242,25 +279,24 @@ class DataShicimingju:
             print "年代为空，返回."
             return None
         for category in categories:
-            if category.name in ["先秦", "汉朝", "魏晋", "南北朝", "隋朝"]:
+            if category.name in ["先秦", "汉朝", "魏晋", "南北朝", "隋朝", "唐朝"]:
                 print category.name, "处理完了, 跳过."
                 continue
+
+            # test begin
+            if category.name == "金朝":
+                print "金朝, return."
+                return
+            # test end
+
             print "正在处理: ", category
             authors = self.get_authors(category)
             if not authors:
                 print "该年代作者为空，跳过该年代. categoryurl:", category.url
                 continue
             i = 0
-            for author in authors:
+            for author in authors[4:]:
                 i += 1
-                if author.name in ["白居易", "杜甫", "李白", "齐己", "刘禹锡", "徐铉", "元稹", "韦应物", \
-                "李商隐", "贯休", "杜牧", "刘长卿", "陆龟蒙", "皎然", "罗隐", "姚合", "许浑", "钱起", "张籍", "王维", \
-                "贾岛", "岑参", "孟郊", "王建", "温庭筠", "韦庄", "韩愈", "皮日休", "权德舆", "方干", "张祜", "孟浩然", \
-                "卢纶", "杜荀鹤", "韩偓", "郑谷", "戴叔伦", "吴融", "张说", "薛能", "李端", "赵嘏", "徐夤", "李贺", "司空图", \
-                "李群玉", "皇甫冉", "顾况", "王昌龄", "高适", "李峤", "张九龄", "李频", "黄滔", "周昙", "武元衡", "施肩吾", "李益", \
-                "宋之问", "耿湋", "马戴", "司空曙", "储光羲", "朱长文", "李咸用", "鲍溶", "韩翃", "朱庆馀", "李洞"]:
-                    print author.name, "处理完了, 跳过."
-                    continue
                 print "author ", i, " 正在处理 ", author
                 poems = self.get_author_poems(category.name, author)
                 if not poems:
