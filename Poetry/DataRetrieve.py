@@ -295,7 +295,7 @@ class DataShicimingju:
                 print "该年代作者为空，跳过该年代. categoryurl:", category.url
                 continue
             i = 0
-            for author in authors[4:]:
+            for author in authors[8:]:
                 i += 1
                 print "author ", i, " 正在处理 ", author
                 poems = self.get_author_poems(category.name, author)
