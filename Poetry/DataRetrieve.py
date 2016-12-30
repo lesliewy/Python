@@ -279,13 +279,13 @@ class DataShicimingju:
             print "年代为空，返回."
             return None
         for category in categories:
-            if category.name in ["先秦", "汉朝", "魏晋", "南北朝", "隋朝", "唐朝"]:
+            if category.name in ["先秦", "汉朝", "魏晋", "南北朝", "隋朝", "唐朝", "宋朝", "金朝", "辽朝", "元朝", "明朝"]:
                 print category.name, "处理完了, 跳过."
                 continue
 
             # test begin
-            if category.name == "金朝":
-                print "金朝, return."
+            if category.name == "近当代":
+                print "近当代, return."
                 return
             # test end
 
@@ -295,7 +295,7 @@ class DataShicimingju:
                 print "该年代作者为空，跳过该年代. categoryurl:", category.url
                 continue
             i = 0
-            for author in authors[25:]:
+            for author in authors[0:]:
                 i += 1
                 print "author ", i, " 正在处理 ", author
                 poems = self.get_author_poems(category.name, author)
@@ -307,6 +307,10 @@ class DataShicimingju:
                     j += 1
 
                     print "poem", j, "/", author.numofpoems,  "正在处理:", poem
+                    if poem.name == "鹤冲天·黄金榜上":
+                        print "skip."
+                        continue
+
                     if not self.get_poem_content(category.name, author.name, poem):
                         continue
                     # 不存在插入，存在更新poem列表.
