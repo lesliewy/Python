@@ -1,5 +1,8 @@
 # encoding=utf-8
 
+# 数据格式：
+# 8bit湿度整数数据 + 8bit湿度小数数据 + 8bint温度整数数据 + 8bit温度小数数据 + 8bit校验位
+#
 import RPi.GPIO as GPIO
 import time
 
@@ -49,7 +52,7 @@ def get_dht11(dht11_pin):
     GPIO.setup(dht11_pin,GPIO.OUT)		# 读取结束 复位引脚
     GPIO.output(dht11_pin,1)
 
-#print "buff - ",buff
+    print "buff - ",buff
 
 # 开始处理数据
     for i in range(len(buff)):   # 将时间转换为 0 1
@@ -58,7 +61,7 @@ def get_dht11(dht11_pin):
             buff[i]=1
         else:
             buff[i]=0
-    # print "After - ",buff
+    print "After - ",buff
 
 
     i=40
@@ -67,7 +70,7 @@ def get_dht11(dht11_pin):
         i-=1
         hum_int<<=1
         hum_int+=buff[i]
-    # print "hum - ",hum_int
+    print "hum - ",hum_int
 
     tmp_int=0
     i=24
@@ -75,7 +78,7 @@ def get_dht11(dht11_pin):
         i-=1
         tmp_int<<=1
         tmp_int+=buff[i]
-    # print "tmp - ",tmp_int
+    print "tmp - ",tmp_int
     return [hum_int,tmp_int]
 
 GPIO.setmode(GPIO.BOARD)
