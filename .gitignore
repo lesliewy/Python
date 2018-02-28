@@ -1,4 +1,6 @@
 Backup/
 *.swp
 .idea
-
+Stock/2018*
+Stock/*.log
+Stock/__pycache__/
