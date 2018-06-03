@@ -13,7 +13,29 @@ industry_url = 'http://data.eastmoney.com/report/$$.html'
 
 research_report_url = 'http://datainterface.eastmoney.com//EM_DataCenter/js.aspx?type=SR&sty=GGSR&ps=50&p=1&code=$$&rt=50652254'
 
-research_result_file = 'research_report.data'
+# 按行业分类结果
+research_industry_result_file = 'research_industry_report.data'
+# 按概念分类结果
+research_notion_result_file = 'research_notion_report.data'
+
+# 概念、code映射文件.
+notion_code_file = 'notion_code.data'
+
+
+# 解析概念板块
+def parse_notion_code(notion_code_file):
+    result = {}
+    file_handle = open(notion_code_file, 'r')
+    for line in file_handle:
+        notion_name = line.split(',')[0].strip()
+        code = line.split(',')[1].strip()
+        if (code in result):
+            result[code].add(notion_name)
+        else:
+            s = set()
+            s.add(notion_name)
+            result[code] = s
+    return result
 
 
 # 获取需要的文件
@@ -92,7 +114,7 @@ def parse_research_report(code):
                 calc_dict[key_word] = calc_dict[key_word] + 1
                 existed = True
     # 没有找到任何一个关键词时，直接退出.
-    if(not existed):
+    if (not existed):
         return
 
     # soup
@@ -112,11 +134,21 @@ def parse_research_report(code):
 
     # 保存至文件
     today = date.today().isoformat()
-    file_path = today + '/' + research_result_file
-    file_handle = open(file_path, 'a')
-    content = industry + ',' + code + ',' + stock_name + ',' + str(calc_dict) + "\n"
-    file_handle.write(content)
-    file_handle.close()
+    industry_file_path = today + '/' + research_industry_result_file
+    industry_file_handle = open(industry_file_path, 'a')
+    industry_content = industry + ',' + code + ',' + stock_name + ',' + str(calc_dict) + "\n"
+    industry_file_handle.write(industry_content)
+    industry_file_handle.close()
+
+    notion_file_path = today + '/' + research_notion_result_file
+    notion_file_handle = open(notion_file_path, 'a')
+    notion_names = notion_dict.get(code)
+    if notion_names:
+        for notion_name in notion_names:
+            notion_content = notion_name + ',' + code + ',' + stock_name + ',' + str(calc_dict) + "\n"
+            notion_file_handle.write(notion_content)
+        notion_file_handle.close()
+
 
 def sort_file(file_path):
     f = open(file_path)
@@ -130,23 +162,33 @@ def sort_file(file_path):
     f.writelines(result)
     f.close()
 
+
+# 概念板块对应的code
+notion_dict = parse_notion_code(notion_code_file)
+
+
 def main():
     codes = get_codes()
     # codes = ['002707']
     index = 0;
     # 先删掉
     today = date.today().isoformat()
-    file_path = today + '/' + research_result_file
-    if (os.path.isfile(file_path)):
-        os.remove(file_path)
+    industry_file_path = today + '/' + research_industry_result_file
+    if (os.path.isfile(industry_file_path)):
+        os.remove(industry_file_path)
+    notion_file_path = today + '/' + research_notion_result_file
+    if (os.path.isfile(notion_file_path)):
+        os.remove(notion_file_path)
     for code in codes:
         index += 1
         logging.info("正在处理: " + str(index) + " " + code)
         parse_research_report(code)
     # 对文件排序
     today = date.today().isoformat()
-    file_path = today + '/' + research_result_file
-    sort_file(file_path)
+    industry_file_path = today + '/' + research_industry_result_file
+    sort_file(industry_file_path)
+    notion_file_path = today + '/' + research_notion_result_file
+    sort_file(notion_file_path)
 
 
 # get_codes()
