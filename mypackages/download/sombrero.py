@@ -94,11 +94,15 @@ def get_key(soup, selector, key_location="H", key_seq=0):
 
 
 ###
+#
 #  获取指定selector下的value.   如果指定了colume_key_dict, 每一行的key将会做替换，默认是序号;
+#  colume_key_dict: 上面的表头;
+#  line_key_dict: 左面的表头;
 #  例如: {0: {0: "赵振铎", 1: "李金斗"}, 1:{0: "石富宽", 1:"于谦"}} -->  {0: {"第七代": "赵振铎", "第八代": "李金斗"}, 1:{"第七代": "石富宽", "第八代":"于谦"}}
+#
 ###
-def get_value(soup, selector, exclude_head=False, colume_key_dict={}):
-    logging.info("selector=%s, exclude_head=%s, colume_key_dict=%s", selector, exclude_head, colume_key_dict)
+def get_value(soup, selector, exclude_top=False, colume_key_dict={}, exclude_left=False, line_key_dict={}):
+    logging.info("selector=%s, exclude_head=%s, colume_key_dict=%s", selector, exclude_top, colume_key_dict)
     if (not soup):
         logging.error("soup 不能为空");
         return;
@@ -106,7 +110,8 @@ def get_value(soup, selector, exclude_head=False, colume_key_dict={}):
     if (not value_list):
         logging.info("该selector不存在子节点");
         return;
-    value_dict = __get_value_dict(value_list, exclude_head, colume_key_dict);
+    value_dict = __get_value_dict(value_list, exclude_top=exclude_top, colume_key_dict=colume_key_dict,
+                                  exclude_left=exclude_left, line_key_dict=line_key_dict);
     return value_dict
 
 
@@ -143,24 +148,37 @@ def __get_line_or_column_from_list(selector_list, location="H", seq_num=0):
     return key_dict, concat_content;
 
 
-def __get_value_dict(selector_list, exclude_head, colume_key_dict):
+def __get_value_dict(selector_list, exclude_top=False, colume_key_dict={}, exclude_left=False, line_key_dict={}):
     value_dict = {};
     i = 0;
+    # 处理exclude_left, 因为每行都要恢复原值;
+    exclude_left_temp = exclude_left;
     # 处理行
     for e in selector_list:
-        if (exclude_head and i == 0):
-            exclude_head = False;
+        if (exclude_top and i == 0):
+            exclude_top = False;
+            i += 1;
             continue;
         # 处理行中列
         line = {};
         j = 0;
         for c in e.children:
-            key_name = colume_key_dict.get(j);
-            if (key_name):
-                line[key_name] = c.text;
+            if (exclude_left_temp and j == 0):
+                exclude_left_temp = False;
+                j += 1;
+                continue;
+            column_name = colume_key_dict.get(j);
+            if (column_name):
+                line[column_name] = c.text;
             else:
                 line[j] = c.text;
             j += 1;
-        value_dict[i] = line;
+        # 每一行开始前都要恢复
+        exclude_left_temp = exclude_left;
+        line_name = line_key_dict.get(i);
+        if (line_name):
+            value_dict[line_name] = line;
+        else:
+            value_dict[i] = line;
         i += 1;
     return value_dict

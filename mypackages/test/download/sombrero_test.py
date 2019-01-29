@@ -78,20 +78,31 @@ class SombreroTest(unittest.TestCase):
         result2 = sombrero.get_key(soup, selector2, key_location="V", key_seq=0);
         self.assertEqual("台北曲艺团", result2[1], "key获取失败，台湾地区相声演员");
 
-    def test_get_value(self):
+    def test_get_value1(self):
         self.soup_file, soup = sombrero.get_soup(self.url_baike_xiangsheng, self.file_path_baike_xiangsheng);
         selector1 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr";
-        result1 = sombrero.get_value(soup, selector1, exclude_head=True);
-        self.assertTrue("于谦" in result1[2][1]);
-        self.assertTrue("马季" in result1[3][0]);
-        self.assertTrue("赵伟洲" in result1[11][1]);
+        result1 = sombrero.get_value(soup, selector1, exclude_top=True);
+        self.assertTrue("于谦" in result1[3][1]);
+        self.assertTrue("马季" in result1[4][0]);
+        self.assertTrue("赵伟洲" in result1[12][1]);
 
         ### 将列转为key的名称
-        key_selector2 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr";
-        key_dict2 = sombrero.get_key(soup, key_selector2, key_location="H", key_seq=0);
-        result2 = sombrero.get_value(soup, selector1, exclude_head=True, colume_key_dict=key_dict2);
+        column_selector2 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr";
+        column_dict2 = sombrero.get_key(soup, column_selector2, key_location="H", key_seq=0);
+        result2 = sombrero.get_value(soup, selector1, exclude_top=True, colume_key_dict=column_dict2);
         colume_key_1 = "第七代"
         colume_key_2 = "第八代"
-        self.assertTrue("于谦" in result2[2][colume_key_2]);
-        self.assertTrue("马季" in result2[3][colume_key_1]);
-        self.assertTrue("赵伟洲" in result2[11][colume_key_2]);
+        self.assertTrue("于谦" in result2[3][colume_key_2]);
+        self.assertTrue("马季" in result2[4][colume_key_1]);
+        self.assertTrue("赵伟洲" in result2[12][colume_key_2]);
+
+    def test_get_value2(self):
+        self.soup_file, soup = sombrero.get_soup(self.url_baike_xiangsheng, self.file_path_baike_xiangsheng);
+        line_selector1 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(12) > tbody > tr";
+        line_key_dict1 = sombrero.get_key(soup, line_selector1, key_location="V", key_seq=0);
+        result1 = sombrero.get_value(soup, line_selector1, exclude_top=False, exclude_left=True,
+                                     line_key_dict=line_key_dict1);
+        line_key_1 = "台北曲艺团"
+        line_key_2 = "相声瓦舍"
+        self.assertTrue("刘增锴" in result1[line_key_1][1]);
+        self.assertTrue("冯翊纲" in result1[line_key_2][1]);
