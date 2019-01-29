@@ -34,3 +34,7 @@ my_const.MATCH_HTML = "match.html"
 my_const.MATCH_DAT = "match.dat"
 # 博彩公司编号文件
 my_const.CORP_NO_FILE = "corpNo.dat"
+# 欧赔目录, 保存初赔文件等.
+my_const.EURO_ODDS_DIR = "euroOdds"
+# 初赔目录
+my_const.EURO_ODDS_FIRST_DIR = "firstEuroOdds"

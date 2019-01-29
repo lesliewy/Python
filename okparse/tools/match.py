@@ -3,6 +3,7 @@
 '''
 下载指定ok_url_date的单场页面: http://www.okooo.com/danchang/180504
 并解析，生成结果文件: match.dat
+比赛序号  联赛名称  主队  客队  主队得分  客队得分  match_id
 
 '''
 

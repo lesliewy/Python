@@ -4,6 +4,8 @@
 '''
 import logging
 import os
+import re
+import datetime
 
 from bs4 import BeautifulSoup
 from download import persist
@@ -42,6 +44,7 @@ def download_euro_odds_all(ok_url_date, match_id, corp_no, match_seq=None, repla
 
 
 # 解析某家博彩公司的欧赔信息, 并生成结果文件, dat 文件.
+# 比赛日期  距离开赛时间  主赔  平赔  客赔  主胜概率  平概率  客胜概率  主胜凯利指数  平凯利指数  客胜凯利指数  赔付率
 def persist_euro_odds_all(ok_url_date, match_id, corp_no, match_seq=None, replace=False):
     existed = False
     dat_path = __get_euro_odds_dat_path(ok_url_date, match_id, corp_no, match_seq);
@@ -54,6 +57,60 @@ def persist_euro_odds_all(ok_url_date, match_id, corp_no, match_seq=None, replac
         return existed
     file_util.write_file(content, dat_path, 'w')
     return existed
+
+
+# 生成初赔文件
+# 比赛日期  距离开赛时间  主赔  平赔  客赔  主胜概率  平概率  客胜概率  主胜凯利指数  平凯利指数  客胜凯利指数  赔付率  ok_url_date  match_seq  match_id  主队得分  客队得分
+def persist_first(corp_no):
+    first_odds = get_first(corp_no)
+    first_odds_dir = os.path.join(const.my_const.LOCAL_DATA_DIR, const.my_const.EURO_ODDS_DIR,
+                                  const.my_const.EURO_ODDS_FIRST_DIR)
+    file_util.create_dir(first_odds_dir)
+    first_odds_file = os.path.join(first_odds_dir, corp_no + ".dat")
+    file_util.write_lines(first_odds, file_path=first_odds_file, mode='w')
+
+
+# 获取指定公司的所有初赔.
+def get_first(corp_no):
+    begin = datetime.datetime.now()
+    dat_files = file_util.get_files(const.my_const.LOCAL_DATA_DIR, parent_name_reg="corpEuroOdds",
+                                    file_name_reg=".*_" + corp_no + ".dat")
+    result = []
+    matches = []
+    pre_match_dat = ""
+    for dat_file in dat_files:
+        match_dat = os.path.join(os.path.dirname(os.path.dirname(dat_file)), const.my_const.MATCH_DAT)
+        if match_dat != pre_match_dat:
+            pre_match_dat = match_dat
+            with open(match_dat) as fr:
+                matches = [re.split(" +", inst.strip()) for inst in fr.readlines()]
+
+        result.append(__get_first(dat_file, matches))
+    end = datetime.datetime.now()
+    logging.info("生成初赔，corp_no: %s, 总个数: %d,  总时间: %s", corp_no, len(result), str(end - begin))
+    return result
+
+
+# 获取指定文件的初赔, 返回list
+def __get_first(dat_path, matches):
+    logging.info("生成初赔, 正在处理 " + dat_path)
+    if not os.path.exists(dat_path):
+        logging.info(dat_path, "not exists.")
+        return
+    with open(dat_path) as fr:
+        all_odds = [re.split(" +", inst.strip()) for inst in fr.readlines()]
+    result = []
+    if len(all_odds) > 0:
+        result = all_odds[-1]
+        match_seq = os.path.basename(dat_path).split("_")[0]
+        index = int(match_seq) - 1
+        if (len(matches[index]) >= 7):
+            result.append(os.path.basename(os.path.dirname(os.path.dirname(dat_path))))
+            result.append(matches[index][0])
+            result.append(matches[index][6])
+            result.append(matches[index][4])
+            result.append(matches[index][5])
+    return result
 
 
 def __build_header():
@@ -132,6 +189,10 @@ def __parse_euro_odds_all(file_path):
             kellyHost=kelly_host, kellyEven=kelly_even, kellyVisiting=kelly_visiting, compensate=compensate) + "\n"
     return lines
 
+
 # download_euro_odds_all("180504", "1022465", "82")
 # persist_euro_odds_all("/Users/leslie/MyProjects/Data/Okooo/180504/corpEuroOdds/1022465_82.html",
 #                      "/Users/leslie/MyProjects/Data/Okooo/180504/corpEuroOdds/1022465_82.dat")
+
+# get_first("82")
+persist_first("82")

@@ -3,4 +3,5 @@ Backup/
 .idea
 Stock/2018*
 Stock/*.log
+mypackages/**/*.log
 __pycache__/

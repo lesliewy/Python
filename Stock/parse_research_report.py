@@ -195,4 +195,7 @@ def main():
 
 # print(getPage())
 
-main()
+# main()
+
+# sort_file("2018-07-26/research_industry_report.data")
+sort_file("2018-07-26/research_notion_report.data")

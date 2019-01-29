@@ -49,7 +49,7 @@ def process_batch(year, month=None):
         return
     if month:
         for seq in range(1, 10):
-            ok_url_date = year + month + "0" + str(seq)
+            ok_url_date = year + month + str(seq).rjust(2, "0")
             process(ok_url_date)
     else:
         for month_temp in range(1, 13):
@@ -62,5 +62,6 @@ def process_batch(year, month=None):
                 except Exception as e:
                     continue
 
-
-process_batch("16")
+# 下载文件.
+# process_batch("16")
+# process_batch("18", "06")
