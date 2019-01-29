@@ -58,20 +58,25 @@ class SombreroTest(unittest.TestCase):
         result2 = sombrero.get_num_of_child(soup, selector3, child_type);
         self.assertEqual(num_of_div3, result2, "div 标签个数不匹配");
 
-    def test_get_content_recursion(self):
+    def test_get_line_or_column_recursion(self):
         self.soup_file, soup = sombrero.get_soup(self.url_baike_xiangsheng, self.file_path_baike_xiangsheng);
 
-        selector1 = 'body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr:nth-of-type(61) > td:nth-of-type(2)';
+        # selector1 = 'body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr:nth-of-type(61) > td:nth-of-type(2)';
+        selector1 = 'body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr';
         content1 = "郭德纲";
-        key_dict, concat_content = sombrero.get_content_recursion(soup, selector1);
+        key_dict, concat_content = sombrero.get_line_or_column_recursion(soup, selector1, location="H", seq_num=60);
         self.assertTrue(content1 in str(concat_content), "郭德纲不在该selector中");
 
     def test_get_key(self):
         self.soup_file, soup = sombrero.get_soup(self.url_baike_xiangsheng, self.file_path_baike_xiangsheng);
-        selector1 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr:nth-of-type(1) > th";
-        result1 = sombrero.get_key(soup, selector1);
+        selector1 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr";
+        result1 = sombrero.get_key(soup, selector1, key_location="H", key_seq=0);
         self.assertEqual("第七代", result1[0], "key中第一列不匹配.")
         self.assertEqual("第八代", result1[1], "key中第二列不匹配.")
+
+        selector2 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(12) > tbody > tr"
+        result2 = sombrero.get_key(soup, selector2, key_location="V", key_seq=0);
+        self.assertEqual("台北曲艺团", result2[1], "key获取失败，台湾地区相声演员");
 
     def test_get_value(self):
         self.soup_file, soup = sombrero.get_soup(self.url_baike_xiangsheng, self.file_path_baike_xiangsheng);
@@ -82,8 +87,8 @@ class SombreroTest(unittest.TestCase):
         self.assertTrue("赵伟洲" in result1[11][1]);
 
         ### 将列转为key的名称
-        key_selector2 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr:nth-of-type(1) > th";
-        key_dict2 = sombrero.get_key(soup, key_selector2);
+        key_selector2 = "body > div.body-wrapper > div.content-wrapper > div > div.main-content > table:nth-of-type(10) > tbody > tr";
+        key_dict2 = sombrero.get_key(soup, key_selector2, key_location="H", key_seq=0);
         result2 = sombrero.get_value(soup, selector1, exclude_head=True, colume_key_dict=key_dict2);
         colume_key_1 = "第七代"
         colume_key_2 = "第八代"

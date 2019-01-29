@@ -19,7 +19,7 @@ logging.basicConfig(filename='sombrero.log', level=logging.INFO, format=LOG_FORM
 
 
 ###
-#  获取beautiful soup
+#  获取指定url的beautiful soup
 ###
 def get_soup(url, full_file_path):
     if (string_util.is_any_blank(url, full_file_path)):
@@ -33,7 +33,7 @@ def get_soup(url, full_file_path):
 
 
 ###
-#  获取指定url、指定selector 下的文字.
+#  获取指定selector 下的文字.
 ###
 def get_content_with_selector(soup, selector):
     if (string_util.is_any_blank(selector)):
@@ -50,7 +50,7 @@ def get_content_with_selector(soup, selector):
 
 
 ###
-#  获取指定url、指定selector下指定类型标签的个数.
+#  获取指定selector下指定类型标签的个数.
 ###
 def get_num_of_child(soup, selector, child_type):
     logging.info("selector=%s, child_type=%s", selector, child_type);
@@ -63,10 +63,10 @@ def get_num_of_child(soup, selector, child_type):
 
 
 ###
-#  获取指定url、指定selector下的text, 递归(目前只递归一次)
+#  获取指定selector下的text, 递归(目前只递归一次)
 ###
-def get_content_recursion(soup, selector):
-    logging.info("selector=%s", selector);
+def get_line_or_column_recursion(soup, selector, location="H", seq_num=0):
+    logging.info("selector=%s, location=%s, key_seq=%s", selector, location, seq_num);
     if (not soup):
         logging.error("soup 不能为空");
         return;
@@ -75,27 +75,30 @@ def get_content_recursion(soup, selector):
     if (not selector_list):
         logging.info("该selector不存在子节点");
         return;
-    key_dict, concat_content = __get_content_from_list(selector_list);
+    key_dict, concat_content = __get_line_or_column_from_list(selector_list, location=location, seq_num=seq_num);
     return key_dict, concat_content;
 
 
 ###
-#  获取指定url、指定selector下的 dict, 通常是table 的表头.   dict: key: 序号(从0开始) , value: 表头.
+#  获取指定selector下的 dict, 通常是table 的表头.   dict key: 序号(从0开始) , value: 表头.
+#  例如: {0:"第七代", 1:"第八代"}
+#  type: H-横向, 即表头在上面的;  V-纵向, 即表头在左面的;
 ###
-def get_key(soup, selector):
-    logging.info("selector=%s", selector);
+def get_key(soup, selector, key_location="H", key_seq=0):
+    logging.info("selector=%s, key_location=%s, key_seq=%s", selector, key_location, key_seq);
     if (not soup):
         logging.error("soup 不能为空");
         return;
-    key_dict, concat_content = get_content_recursion(soup, selector)
+    key_dict, concat_content = get_line_or_column_recursion(soup, selector, location=key_location, seq_num=key_seq)
     return key_dict;
 
 
 ###
-#  获取
+#  获取指定selector下的value.   如果指定了colume_key_dict, 每一行的key将会做替换，默认是序号;
+#  例如: {0: {0: "赵振铎", 1: "李金斗"}, 1:{0: "石富宽", 1:"于谦"}} -->  {0: {"第七代": "赵振铎", "第八代": "李金斗"}, 1:{"第七代": "石富宽", "第八代":"于谦"}}
 ###
 def get_value(soup, selector, exclude_head=False, colume_key_dict={}):
-    logging.info("selector=%s", selector)
+    logging.info("selector=%s, exclude_head=%s, colume_key_dict=%s", selector, exclude_head, colume_key_dict)
     if (not soup):
         logging.error("soup 不能为空");
         return;
@@ -106,15 +109,37 @@ def get_value(soup, selector, exclude_head=False, colume_key_dict={}):
     value_dict = __get_value_dict(value_list, exclude_head, colume_key_dict);
     return value_dict
 
-def __get_content_from_list(selector_list):
+
+def __get_line_or_column_from_list(selector_list, location="H", seq_num=0):
     concat_content = "";
     key_dict = {};
-    i = 0;
-    for e in selector_list:
-        # e.text 可以取到子孙节点的text,然后拼接起来;  e.string 仅取当前节点;
-        concat_content += e.text;
-        key_dict[i] = e.text;
-        i += 1;
+    if (location == "H"):
+        i = 0;
+        for e in selector_list:
+            if (key_dict):
+                break;
+            if (i != seq_num):
+                i += 1;
+                continue;
+            j = 0;
+            for c in e.children:
+                # c.text 可以取到子孙节点的text,然后拼接起来;  c.string 仅取当前节点;
+                concat_content += c.text;
+                key_dict[j] = c.text;
+                j += 1;
+            i += 1;
+    elif (location == "V"):
+        i = 0;
+        for e in selector_list:
+            j = 0;
+            for c in e.children:
+                if (j != seq_num):
+                    j += 1;
+                    continue;
+                concat_content += c.text;
+                key_dict[i] = c.text;
+                j += 1;
+            i += 1;
     return key_dict, concat_content;
 
 
