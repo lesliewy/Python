@@ -106,16 +106,6 @@ def get_value(soup, selector, exclude_head=False, colume_key_dict={}):
     value_dict = __get_value_dict(value_list, exclude_head, colume_key_dict);
     return value_dict
 
-
-def __check_persis_file(url, selector, full_file_path):
-    if (string_util.is_any_blank(url, selector, full_file_path)):
-        logging.error("url, selector, full_file_path 必须有值.");
-        return False
-    if (not os.path.isfile(full_file_path)):
-        persist.persist_file(url, full_file_path);
-    return True
-
-
 def __get_content_from_list(selector_list):
     concat_content = "";
     key_dict = {};
