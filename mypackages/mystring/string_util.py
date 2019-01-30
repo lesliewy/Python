@@ -20,7 +20,6 @@ def a():
 
 
 def is_any_blank(*strs):
-    logging.info("%s", strs);
     for s in strs:
         if (not s or len(str(s).strip()) == 0):
             return True;

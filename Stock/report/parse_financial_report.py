@@ -89,12 +89,8 @@ def main():
     if (not codes):
         logging.error("没有取到code.");
         return;
-    i = 0;
     for code in codes:
-        if (i > 2):
-            break;
         get_three_report(code);
-        i += 1;
     end = time.time();
     logging.info("==================== 获取财务报表完成: %f s", (end - start))
 
@@ -117,7 +113,7 @@ def get_lrb(code):
         logging.info("%s 已被处理.", code)
         return;
 
-    f, soup = sombrero.get_soup(url_lrb, html_full_path, file_size=2000);
+    f, soup = sombrero.get_soup(url_lrb, html_full_path, file_size=25000);
     if (not soup):
         logging.error("soup 获取失败.");
         return;
@@ -147,7 +143,7 @@ def get_zcfzb(code):
         logging.info("%s 已被处理.", code)
         return;
 
-    f, soup = sombrero.get_soup(url_zcfzb, html_full_path, file_size=2000);
+    f, soup = sombrero.get_soup(url_zcfzb, html_full_path, file_size=25000);
     if (not soup):
         logging.error("soup 获取失败.");
         return;
@@ -177,7 +173,7 @@ def get_xjllb(code):
         logging.info("%s 已被处理.", code)
         return;
 
-    f, soup = sombrero.get_soup(url_xjllb, html_full_path, file_size=2000);
+    f, soup = sombrero.get_soup(url_xjllb, html_full_path, file_size=25000);
     if (not soup):
         logging.error("soup 获取失败.");
         return;
