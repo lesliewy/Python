@@ -2,12 +2,6 @@
 
 import logging
 
-# 日志
-LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
-DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-logging.basicConfig(filename='string_utils.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-
-
 # 从str中取出数字.
 def get_num(value):
     if len(value) <= 0:

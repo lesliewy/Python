@@ -1,6 +1,12 @@
+import logging
 import unittest
 
 from mystring import string_util
+
+# 日志
+LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
+DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+logging.basicConfig(filename='string_utils.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 
 class StringUtilTest(unittest.TestCase):

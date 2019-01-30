@@ -5,17 +5,11 @@ from bs4 import BeautifulSoup
 from download import persist
 from mystring import string_util
 
-######################
-#
-# 解析文件组件.
-#
-######################
-
 
 # 日志
-LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
-DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-logging.basicConfig(filename='sombrero.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+# LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
+# DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+# logging.basicConfig(filename='sombrero.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 
 ###
@@ -115,6 +109,64 @@ def get_value(soup, selector, exclude_top=False, colume_key_dict={}, exclude_lef
     return value_dict
 
 
+###
+# 按照给定的dict结构来调整数据data(也是dict类型)
+# data 结构只有一层: 例如 {"a":"1", "b":"2", "c":"3"}
+# arch_template:  {"第一层": ["a", "c"]}  or  {"第一层":{"第二层a":["a","c"],"第二层b":["b"]}}    最多可支持三层.
+###
+def adjust_architecture_dict(arch_template, data):
+    if (not data):
+        logging.error("data 不能为空");
+        return;
+    if (not arch_template):
+        return data;
+    result = {};
+    all_keys_in_list = [];
+    for key1 in arch_template:
+        value1 = arch_template.get(key1);
+        if (not value1):
+            continue;
+        if (isinstance(value1, (list))):
+            new_value1 = {}
+            for key_in_list in value1:
+                if (key_in_list in data):
+                    new_value1[key_in_list] = data[key_in_list];
+                all_keys_in_list.append(key_in_list);
+            result[key1] = new_value1
+        elif (isinstance(value1, (dict))):
+            result[key1] = {}
+            for key2 in value1:
+                value2 = value1.get(key2);
+                if (not value2):
+                    continue;
+                if (isinstance(value2, (list))):
+                    new_value2 = {}
+                    for key_in_list in value2:
+                        if (key_in_list in data):
+                            new_value2[key_in_list] = data[key_in_list];
+                        all_keys_in_list.append(key_in_list);
+                    result[key1][key2] = new_value2
+                elif (isinstance(value2, (dict))):
+                    result[key1][key2] = {}
+                    for key3 in value2:
+                        value3 = value2.get(key3);
+                        if (not value3):
+                            continue;
+                        if (isinstance(value3, (list))):
+                            new_value3 = {}
+                            for key_in_list in value3:
+                                if (key_in_list in data):
+                                    new_value3[key_in_list] = data[key_in_list];
+                                all_keys_in_list.append(key_in_list);
+                            result[key1][key2][key3] = new_value3
+
+    # 追加其余的. 求差集
+    keys_not_in_template = list(set(data.keys()).difference(set(all_keys_in_list)));
+    for k in keys_not_in_template:
+        result[k] = data[k];
+    return result;
+
+
 def __get_line_or_column_from_list(selector_list, location="H", seq_num=0):
     concat_content = "";
     key_dict = {};
@@ -157,7 +209,6 @@ def __get_value_dict(selector_list, exclude_top=False, colume_key_dict={}, exclu
     for e in selector_list:
         if (exclude_top and i == 0):
             exclude_top = False;
-            i += 1;
             continue;
         # 处理行中列
         line = {};
@@ -165,7 +216,6 @@ def __get_value_dict(selector_list, exclude_top=False, colume_key_dict={}, exclu
         for c in e.children:
             if (exclude_left_temp and j == 0):
                 exclude_left_temp = False;
-                j += 1;
                 continue;
             column_name = colume_key_dict.get(j);
             if (column_name):
