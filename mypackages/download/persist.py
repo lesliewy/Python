@@ -1,7 +1,9 @@
 # -*- coding:utf-8 -*-
 
-from files import file_util
+import os
 import urllib.request
+
+from files import file_util
 
 
 # 获取指定url的文件, 保存至本地
@@ -40,6 +42,22 @@ def persist_file(url, full_file_path, encoding="utf8", withUserAgent=False, head
             print("连接失败,错误原因", e.reason)
             return None
         '''
+
+
+#####
+#
+# 下载文件.
+#
+#####
+def persis_file_times(url, full_file_path, file_size=0):
+    if (not os.path.isfile(full_file_path) or (file_size > 0 and os.path.getsize(full_file_path) <= file_size)):
+        max_times = 3;
+        while (max_times > 0):
+            max_times -= 1;
+            if (os.path.isfile(full_file_path) and os.path.getsize(full_file_path) > file_size):
+                break;
+            persist_file(url, full_file_path);
+    return os.path.isfile(full_file_path) and os.path.getsize(full_file_path) > file_size;
 
 
 # 获取指定url的内容.

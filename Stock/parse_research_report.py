@@ -1,10 +1,12 @@
 # -*- coding:utf-8 -*-
 
-import urllib.request
 import json
-from Stocks import *
+import urllib.request
 from datetime import date
+
 from bs4 import BeautifulSoup
+
+from Stocks import *
 
 key_words = ['龙头', '领先', '行业第']
 
@@ -190,6 +192,8 @@ def main():
     notion_file_path = today + '/' + research_notion_result_file
     sort_file(notion_file_path)
 
+    logging.info("Done.")
+
 
 # get_codes()
 
@@ -198,4 +202,4 @@ def main():
 # main()
 
 # sort_file("2018-07-26/research_industry_report.data")
-sort_file("2018-07-26/research_notion_report.data")
+# sort_file("2018-07-26/research_notion_report.data")

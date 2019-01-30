@@ -2,6 +2,7 @@ Backup/
 *.swp
 .idea
 Stock/2018*
-Stock/*.log
+Stock/data
+Stock/log
 mypackages/**/*.log
 __pycache__/

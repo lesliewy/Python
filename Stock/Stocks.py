@@ -9,9 +9,9 @@ import urllib.request
    获取股票的code
 '''
 # 日志
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-logging.basicConfig(filename='parse.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+# LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+# DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+# logging.basicConfig(filename='parse.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 
 class Stocks:

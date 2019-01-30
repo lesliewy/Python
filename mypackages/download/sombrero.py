@@ -1,26 +1,20 @@
 import logging
-import os
 
 from bs4 import BeautifulSoup
 from download import persist
 from mystring import string_util
 
 
-# 日志
-# LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
-# DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-# logging.basicConfig(filename='sombrero.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-
-
 ###
 #  获取指定url的beautiful soup
 ###
-def get_soup(url, full_file_path):
+def get_soup(url, full_file_path, file_size=0):
     if (string_util.is_any_blank(url, full_file_path)):
         logging.error("url, full_file_path 都不能为空.");
         return;
-    if (not os.path.isfile(full_file_path)):
-        persist.persist_file(url, full_file_path);
+    if (not persist.persis_file_times(url, full_file_path, file_size)):
+        logging.error("多次下载文件，仍然失败, full_file_path=%s", full_file_path)
+        return
     f = open(full_file_path, 'r', encoding='UTF-8')
     soup = BeautifulSoup(f, 'html5lib')  # html.parser   html5lib  lxml
     return f, soup
@@ -122,7 +116,9 @@ def adjust_architecture_dict(arch_template, data):
         return data;
     result = {};
     all_keys_in_list = [];
+    all_keys_in_arch = [];
     for key1 in arch_template:
+        all_keys_in_arch.append(key1);
         value1 = arch_template.get(key1);
         if (not value1):
             continue;
@@ -136,6 +132,7 @@ def adjust_architecture_dict(arch_template, data):
         elif (isinstance(value1, (dict))):
             result[key1] = {}
             for key2 in value1:
+                all_keys_in_arch.append(key2);
                 value2 = value1.get(key2);
                 if (not value2):
                     continue;
@@ -149,6 +146,7 @@ def adjust_architecture_dict(arch_template, data):
                 elif (isinstance(value2, (dict))):
                     result[key1][key2] = {}
                     for key3 in value2:
+                        all_keys_in_arch.append(key3);
                         value3 = value2.get(key3);
                         if (not value3):
                             continue;
@@ -161,7 +159,7 @@ def adjust_architecture_dict(arch_template, data):
                             result[key1][key2][key3] = new_value3
 
     # 追加其余的. 求差集
-    keys_not_in_template = list(set(data.keys()).difference(set(all_keys_in_list)));
+    keys_not_in_template = list(set(data.keys()).difference(set(all_keys_in_list)).difference(all_keys_in_arch));
     for k in keys_not_in_template:
         result[k] = data[k];
     return result;
