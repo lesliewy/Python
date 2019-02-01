@@ -1,8 +1,5 @@
 # -*- coding:utf-8 -*-
-from Mongo import *
-from Category import *
-from Author import *
-from Poem import *
+from db.Mongo import *
 
 """
  mongodb 修改操作.

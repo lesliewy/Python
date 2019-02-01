@@ -11,27 +11,35 @@ try:
 except ImportError:
     # 好像2.4之前的pymongo都没有MongoClient,现在官网已经把Connection抛弃了
     import warnings
+
     warnings.warn("Strongly recommend upgrading to the latest version pymongo version,"
                   "Connection is DEPRECATED: Please use mongo_client instead.")
     from pymongo import Connection as MongoClient
 
-class Mongo(object):
 
+class Mongo(object):
     '''封装数据库操作'''
+
     def __init__(self, host='localhost', port=27017, database='poetry',
-                 maxPoolSize=10, timeout=10):
+                 maxPoolSize=10, timeout=10, username="", password=""):
         self.host = host
         self.port = port
         self.maxPoolSize = maxPoolSize
         self.timeout = timeout
         self.database = database
+        self.username = username
+        self.password = password
 
     @property
     def connect(self):
         # 我这里是为了使用类似"db.集合.操作"的操作的时候才会生成数据库连接,其实pymongo已经实现了进程池,也可以把这个db放在__init__里面,
         # 比如我把db关掉有其他的数据库调用连接又会生成,并且不影响使用.我这里只是想每次执行数据库生成一个连接用完关掉-自己控制自己的
-        return MongoClient(self.host, self.port, maxPoolSize=self.maxPoolSize,
-                  connectTimeoutMS=1000 * self.timeout)
+        client = MongoClient(self.host, self.port, maxPoolSize=self.maxPoolSize,
+                             connectTimeoutMS=1000 * self.timeout)
+        if (self.username):
+            db_auth = client[self.database];
+            db_auth.authenticate(self.username, self.password)
+        return client
 
     def __getitem__(self, collection):
         # 为了兼容db[集合].操作的用法
@@ -44,6 +52,7 @@ class Mongo(object):
             return getattr(db, collection_or_func)
         # 否则委派给Collection
         return Collection(db, collection_or_func)
+
 
 class Collection(object):
 
@@ -69,6 +78,7 @@ def close_db(dbs=['db']):
             ...:     print s_db.test.insert({'a': 1, 'b': 2})
             ...:
     '''
+
     def _deco(func):
         @wraps(func)
         def _call(*args, **kwargs):
@@ -79,5 +89,11 @@ def close_db(dbs=['db']):
                 except KeyError:
                     pass
             return result
+
         return _call
+
     return _deco
+
+
+def get_mongo_db(dbname, username, password):
+    return Mongo(database=dbname, username=username, password=password);

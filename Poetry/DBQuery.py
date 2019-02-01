@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from Mongo import *
+from db.Mongo import *
 
 """
  mongodb 查询操作.

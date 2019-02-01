@@ -14,7 +14,7 @@ def get_soup(url, full_file_path, file_size=0):
         return;
     if (not persist.persis_file_times(url, full_file_path, file_size)):
         logging.error("多次下载文件，仍然失败, full_file_path=%s", full_file_path)
-        return
+        return None, None
     f = open(full_file_path, 'r', encoding='UTF-8')
     soup = BeautifulSoup(f, 'html5lib')  # html.parser   html5lib  lxml
     return f, soup
