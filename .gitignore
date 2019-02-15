@@ -5,4 +5,5 @@ Stock/2018*
 Stock/data
 Stock/log
 mypackages/**/*.log
+*.log
 __pycache__/
