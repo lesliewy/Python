@@ -1,13 +1,15 @@
 # -*- coding:utf-8 -*-
 
-import os
 import logging
+import os
 import urllib.request
 
 '''
    东方财富 - 数据中心 - 个股资金流 - 沪深A股
    获取股票的code
 '''
+
+
 # 日志
 # LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 # DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
@@ -18,7 +20,7 @@ class Stocks:
     # p 为页数， ps为每页条数.
     url_base = 'http://nufm.dfcfw.com/EM_Finance2014NumericApplication/JS.aspx/JS.aspx?type=ct&st=(BalFlowMain)&sr=-1&p=$$&ps=100&token=894050c76af8597a853f5b408b759f5d&cmd=C._A&sty=DCFFITA&rt=50651072'
 
-    local_file = 'stock.data'
+    local_file = '/Users/leslie/MyProjects/GitHub/Python/Stock/stock.data'
 
     @classmethod
     def parse_stock_page(self, page):
@@ -64,6 +66,18 @@ class Stocks:
         return result
 
     @classmethod
+    def get_code_name_dict_from_file(self):
+        if (not os.path.isfile(self.local_file)):
+            logging.info(self.local_file + " 文件不存在")
+            return None
+        file_handle = open(self.local_file, 'r')
+        stocks_list = file_handle.readlines()
+        result = {}
+        for stock in stocks_list:
+            result[stock.split(',')[0]] = stock.split(',')[1]
+        return result
+
+    @classmethod
     def get_code_from_url(self):
         self.persist_stocks_url()
         return self.get_code_from_file()
@@ -71,6 +85,11 @@ class Stocks:
     @classmethod
     def get_codes(self):
         codes = self.get_code_from_file()
-        if(not codes):
+        if (not codes):
             codes = self.get_code_from_url()
         return codes
+
+    @classmethod
+    def get_name_by_code(self, code):
+        code_name_dict = self.get_code_name_dict_from_file()
+        return code_name_dict[code]

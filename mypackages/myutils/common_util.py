@@ -5,11 +5,15 @@ def is_any_none(*values):
     return False;
 
 
-def cal_percent(a, b, reserved=2):
+# reserved: 小数点位数;   increase: 计算增加的比例, a 相对 b 增加了多少比例, 例如 a=10, b= 5, increase="Y", 结果就是100%.
+def cal_percent(a, b, reserved=2, increase="N"):
     if (not isinstance(a, (int)) and not isinstance(a, (float))) and (
             not isinstance(b, (int)) and not isinstance(b, (float))):
         return ""
-    return str(round(a / b * 100, reserved)) + "%"
+    if increase == "N":
+        return str(round(a / b * 100, reserved)) + "%"
+    else:
+        return str(round((a - b) / b * 100, reserved)) + "%"
 
 
 # 如果header、value 一个是中文，一个是英文，如果使用同一个format_str 就会出现不对齐情况;

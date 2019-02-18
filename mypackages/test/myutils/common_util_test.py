@@ -24,6 +24,10 @@ class CommonUtilTest(unittest.TestCase):
         self.assertEqual("50.0%", common_util.cal_percent(1, 2))
         self.assertEqual("56.52%", common_util.cal_percent(13, 23))
         self.assertEqual("5.5962%", common_util.cal_percent(130, 2323, 4))
+        self.assertEqual("100.0%", common_util.cal_percent(10, 5, increase="Y"))
+        self.assertEqual("150.0%", common_util.cal_percent(10, 4, increase="Y"))
+        self.assertEqual("42.86%", common_util.cal_percent(10, 7, increase="Y"))
+        self.assertEqual("-50.0%", common_util.cal_percent(10, 20, increase="Y"))
 
     def test_format_table(self):
         header_tup = None

@@ -1,8 +1,10 @@
-import logging
+import time
 
 from db import mongo
 from mystring import string_util
 from myutils import common_util
+
+from Stocks import *
 
 # 日志
 LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
@@ -20,118 +22,178 @@ db = mongo.get_mongo_db(dbname, username, password);
 # 一条记录
 lrb_dict, xjllb_dict, zcfzb_dict = None, None, None
 
+###############################
+#
+#  异常点:
+#    摸鱼小组 2019-01-24
+#
+#
+###############################
 
-def main(code, report_date):
-    logging.info("code=%s", code)
+
+def main(code, report_date_type, num_of_report):
+    logging.info("code=%s, name=%s", code, Stocks.get_name_by_code(code))
     if (string_util.is_any_blank(code)):
         logging.error("code 不能为空.")
         return;
     if (not assign_dict(code)):
         return;
-    cal_zc_xj(report_date)
-    cal_fz_xj(report_date)
-    cal_gdzc(report_date)
-    cal_sy(report_date)
-    cal_ylnl(report_date)
+
+    xj_report = cal_report(report_date_type, "现金", num_of_report)
+
+    fz_report = cal_report(report_date_type, "负债", num_of_report)
+
+    # 存货, 固定资产, 固定资产/总资产, 固定资产构成没法获取，不然可以查看其中房地产占比.
+    gdzc_report = cal_report(report_date_type, "固定资产、存货", num_of_report)
+
+    sy_report = cal_report(report_date_type, "商誉", num_of_report)
+
+    # 盈利能力: 营业收入(可惜没法获取其构成,看看主营收入占比)销售净利率(%)    营运能力: 总资产周转率(次)
+    ylnl_report = cal_report(report_date_type, "盈利能力", num_of_report)
+    ylnl_report_tb = cal_report(report_date_type, "盈利能力", num_of_report, tb="Y")
+
+    logging.info(xj_report + fz_report + gdzc_report + sy_report + ylnl_report + ylnl_report_tb)
 
 
-# 现金情况
-def cal_zc_xj(report_date):
-    hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date);
+# tb: 是否是同比数据, 同比计算是去年同期的， 例如  20180630 和 20170630 的数据相比.
+def cal_report(report_date_type, report_type, num_of_report, tb="N"):
+    cur_year = time.localtime(time.time()).tm_year
+    cur_mon = time.localtime(time.time()).tm_mon
+    value_tups = []
+
+    i = 1
+    while (i <= num_of_report):
+        if report_date_type == "year":
+            report_date = str(cur_year - i) + "1231"
+        elif report_date_type == "season":
+            if i == 1:
+                report_date = get_latest_season_date(cur_year, cur_mon);
+            else:
+                report_date = get_last_season_date(report_date)
+        if report_type.startswith("现金"):
+            header_tup = ("报告日期", "货币资金(万元)", "准现金类资产(万元)", "总资产(万元)", "净资产(万元)", "货币资金/总资产", "货币资金/净资产")
+            header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}{0[5]:>15}{0[6]:>15}";
+            value_format_str = "{0[0]:>13}{0[1]:>19}{0[2]:>21}{0[3]:>18}{0[4]:>19}{0[5]:>20}{0[6]:>20}";
+            report_tup = get_tup_zc_xj(report_date)
+        elif report_type.startswith("负债"):
+            header_tup = (
+                "报告日期", "总负债(万元)", "长期借款(万元)", "短期借款(万元)", "应付债券(万元)", "有息负债(万元)", "有息负债/总资产", "一年内到期的非流动负债(万元)", "负债总和", "长期递延收益负债(万元)", "资产负债率")
+            header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}{0[5]:>15}{0[6]:>15}{0[7]:>20}{0[8]:>10}{0[9]:>15}{0[10]:>15}";
+            value_format_str = "{0[0]:>13}{0[1]:>18}{0[2]:>19}{0[3]:>20}{0[4]:>19}{0[5]:>20}{0[6]:>20}{0[7]:>28}{0[8]:>14}{0[9]:>22}{0[10]:>18}";
+            report_tup = get_tup_fz(report_date)
+        elif report_type.startswith("固定资产、存货"):
+            header_tup = ("报告日期", "固定资产(万元)", "固定资产/总资产", "存货(万元)", "存货/总资产")
+            header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}";
+            value_format_str = "{0[0]:>13}{0[1]:>19}{0[2]:>20}{0[3]:>18}{0[4]:>19}";
+            report_tup = get_tup_gdzc(report_date)
+        elif report_type.startswith("商誉"):
+            header_tup = ("报告日期", "商誉(万元)")
+            header_format_str = "{0[0]:>10}{0[1]:>15}";
+            value_format_str = "{0[0]:>13}{0[1]:>17}";
+            report_tup = get_tup_sy(report_date)
+        elif report_type.startswith("盈利能力"):
+            if tb == "N":
+                header_tup = ("报告日期", "营业总收入(万元)", "营业利润(万元)", "利润总额(万元)", "净利润(万元)",
+                              "应收票据+应收账款(万元)", "(应收票据+应收账款)/营业总收入", "经营活动产生的现金流量净额(万元)",
+                              "经营活动产生的现金流量净额/净利润", "销售商品、提供劳务收到的现金(万元)", "销售商品、提供劳务收到的现金(万元)/营业收入")
+                header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}{0[5]:>15}{0[6]:>20}{0[7]:>20}{0[8]:>20}{0[9]:>20}{0[10]:>25}";
+                value_format_str = "{0[0]:>13}{0[1]:>20}{0[2]:>19}{0[3]:>19}{0[4]:>19}{0[5]:>22}{0[6]:>29}{0[7]:>31}{0[8]:>31}{0[9]:>31}{0[10]:>40}";
+                report_tup = get_tup_ylnl(report_date)
+            else:
+                header_tup = ("报告日期", "营业总收入同比", "净利润同比")
+                header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}"
+                value_format_str = "{0[0]:>13}{0[1]:>20}{0[2]:>18}"
+                report_tup = get_tup_ylnl(report_date, tb)
+        if report_tup == None:
+            logging.error("没有该财报: %s", report_date)
+            i += 1;
+            continue;
+        value_tups.append(report_tup)
+        i += 1
+    return get_format_str(report_type, header_tup, value_tups, header_format_str, value_format_str);
+
+
+def get_format_str(report_type, header_tup, value_tups, header_format_str, value_format_str):
+    return "\n" + report_type + common_util.format_table(header_tup, value_tups, header_format_str, value_format_str)
+
+
+def get_tup_zc_xj(report_date):
+    try:
+        hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date);
+    except KeyError as e:
+        return None
     hbzj_zzc = None
     if (isinstance(hbzj, (int)) and isinstance(zzc, (int))):
         hbzj_zzc = common_util.cal_percent(hbzj, zzc);
     if (isinstance(hbzj, (int)) and isinstance(jzc, (int))):
         hbzj_jzc = common_util.cal_percent(hbzj, jzc);
-    # logging.info("报告日期: %s, 货币资金(万元): %s, 准现金类资产(万元): %s, 总资产(万元): %s, 净资产(万元): %s, 货币资金/总资产: %s, 货币资金/净资产: %s",
-    #              report_date,
-    #              hbzj, zxjlzc, zzc,
-    #              jzc, hbzj_zzc, hbzj_jzc);
-    header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}{0[5]:>15}{0[6]:>15}";
-    value_format_str = "{0[0]:>13}{0[1]:>19}{0[2]:>21}{0[3]:>18}{0[4]:>19}{0[5]:>20}{0[6]:>20}";
-    logging.info("\n现金情况:" +
-                 common_util.format_table(
-                     ("报告日期", "货币资金(万元)", "准现金类资产(万元)", "总资产(万元)", "净资产(万元)", "货币资金/总资产", "货币资金/净资产"),
-                     [(report_date, hbzj, zxjlzc, zzc, jzc, hbzj_zzc, hbzj_jzc)], header_format_str,
-                     value_format_str))
-    return;
+    return (report_date, hbzj, zxjlzc, zzc, jzc, hbzj_zzc, hbzj_jzc)
 
 
-# 负债情况
-def cal_fz_xj(report_date):
-    hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
-    zfz, cqjk, dqjk, yfzq, yxfz, cqdysyfz = get_fz(report_date)
-    yxfz_zzc = common_util.cal_percent(yxfz, zzc) if isinstance(yxfz, (int)) and yxfz > 0 else "--"
+def get_tup_fz(report_date):
+    try:
+        hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
+    except KeyError as e:
+        return None
+    zfz, cqjk, dqjk, yfzq, yxfz, cqdysyfz, ynndqfldfz, fzzh = get_fz(report_date)
+    yxfz_zzc = common_util.cal_percent(yxfz, zzc) if isinstance(yxfz, (int)) and yxfz != 0 else "--"
     zfz_zzc = common_util.cal_percent(zfz, zzc)
-    # logging.info(
-    #     "报告日期: %s, 总负债(万元): %s, 长期借款(万元): %s, 短期借款(万元): %s, 应付债券(万元): %s, 有息负债(万元): %s, 有息负债/总资产: %s, 长期递延收益负债(万元): %s, 资产负债率: %s",
-    #     report_date, zfz,
-    #     cqjk, dqjk, yfzq, yxfz, yxfz_zzc, cqdysyfz, zfz_zzc);
-    header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}{0[5]:>15}{0[6]:>15}{0[7]:>15}{0[8]:>15}";
-    value_format_str = "{0[0]:>13}{0[1]:>18}{0[2]:>19}{0[3]:>20}{0[4]:>19}{0[5]:>20}{0[6]:>20}{0[7]:>22}{0[8]:>18}";
-    logging.info("\n负债情况:" + common_util.format_table(
-        ("报告日期", "总负债(万元)", "长期借款(万元)", "短期借款(万元)", "应付债券(万元)", "有息负债(万元)", "有息负债/总资产", "长期递延收益负债(万元)", "资产负债率"),
-        [(report_date, zfz, cqjk, dqjk, yfzq, yxfz, yxfz_zzc, cqdysyfz, zfz_zzc)], header_format_str, value_format_str))
-    return;
+    return (report_date, zfz, cqjk, dqjk, yfzq, yxfz, yxfz_zzc, ynndqfldfz, fzzh, cqdysyfz, zfz_zzc);
 
 
-# 存货, 固定资产, 固定资产/总资产, 固定资产构成没法获取，不然可以查看其中房地产占比.
-def cal_gdzc(report_date):
-    hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
-    gdzc_zzc = common_util.cal_percent(gdzc, zzc) if (isinstance(gdzc, (int)) and gdzc > 0) else '--'
-    ch_zzc = common_util.cal_percent(ch, zzc) if (isinstance(ch, (int)) and ch > 0) else '--'
-    # logging.info("报告日期: %s, 固定资产(万元): %s, 固定资产/总资产: %s, 存货(万元): %s, 存货/总资产: %s", report_date, gdzc, gdzc_zzc, ch,
-    #              ch_zzc);
-    header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}";
-    value_format_str = "{0[0]:>13}{0[1]:>19}{0[2]:>20}{0[3]:>18}{0[4]:>19}";
-    logging.info("\n固定资产、存货:" + common_util.format_table(("报告日期", "固定资产(万元)", "固定资产/总资产", "存货(万元)", "存货/总资产"),
-                                                         [(report_date, gdzc, gdzc_zzc, ch, ch_zzc)], header_format_str,
-                                                         value_format_str))
-    return;
+def get_tup_gdzc(report_date):
+    try:
+        hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
+    except KeyError as e:
+        return None;
+    gdzc_zzc = common_util.cal_percent(gdzc, zzc) if (isinstance(gdzc, (int)) and gdzc != 0) else '--'
+    ch_zzc = common_util.cal_percent(ch, zzc) if (isinstance(ch, (int)) and ch != 0) else '--'
+    return (report_date, gdzc, gdzc_zzc, ch, ch_zzc);
 
 
-# 商誉
-def cal_sy(report_date):
-    hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
-    # logging.info("报告日期: %s, 商誉(万元): %s", report_date, sy)
-    header_format_str = "{0[0]:>10}{0[1]:>15}";
-    value_format_str = "{0[0]:>13}{0[1]:>17}";
-    logging.info("\n商誉:" + common_util.format_table(("报告日期", "商誉(万元)"), [(report_date, sy)], header_format_str,
-                                                    value_format_str))
-    return;
+def get_tup_sy(report_date):
+    try:
+        hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
+    except KeyError as e:
+        return None;
+    return (report_date, sy);
 
 
-# 盈利能力: 营业收入(可惜没法获取其构成,看看主营收入占比)销售净利率(%)    营运能力: 总资产周转率(次)
-def cal_ylnl(report_date):
-    hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
+def get_tup_ylnl(report_date, tb="N"):
+    try:
+        hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk = get_zc(report_date)
+    except KeyError as e:
+        return None
     yyzsr, yylr, lrze, jlr = get_lr(report_date)
-    jyhdxjllje, = get_xjll(report_date)
-
-    # 经营活动产生的现金流量净额/净利润
-    jyhdxjllje_jlr = common_util.cal_percent(jyhdxjllje, jlr) if isinstance(jyhdxjllje,
-                                                                            (int)) and jyhdxjllje > 0 else '--'
+    jyhdxjllje, xssptglwxj = get_xjll(report_date)
 
     # (应收票据 + 应收账款)/营业收入
     yspj_yszk = (yspj if isinstance(yspj, (int)) else 0) + (yszk if isinstance(yszk, (int)) else 0)
     yspj_yszk_yysr = common_util.cal_percent(yspj_yszk, yyzsr) if (isinstance(yspj_yszk,
-                                                                              (int)) and yspj_yszk > 0) else '--'
+                                                                              (int)) and yspj_yszk != 0) else '--'
 
-    # logging.info(
-    #     "报告日期: %s, 营业总收入(万元): %s, 营业利润(万元): %s, 利润总额(万元): %s, 净利润(万元): %s, 应收票据+应收账款(万元): %s, (应收票据+应收账款)/营业总收入: %s, 经营活动产生的现金流量净额(万元): %s, 经营活动产生的现金流量净额/净利润: %s",
-    #     report_date, yyzsr, yylr, lrze,
-    #     jlr, yspj_yszk, yspj_yszk_yysr, jyhdxjllje, jyhdxjllje_jlr)
-    header_format_str = "{0[0]:>10}{0[1]:>15}{0[2]:>15}{0[3]:>15}{0[4]:>15}{0[5]:>15}{0[6]:>20}{0[7]:>20}{0[8]:>20}";
-    value_format_str = "{0[0]:>13}{0[1]:>20}{0[2]:>19}{0[3]:>19}{0[4]:>19}{0[5]:>22}{0[6]:>29}{0[7]:>31}{0[8]:>31}";
-    logging.info("\n盈利能力:" + common_util.format_table(("报告日期", "营业总收入(万元)", "营业利润(万元)", "利润总额(万元)", "净利润(万元)",
-                                                       "应收票据+应收账款(万元)", "(应收票据+应收账款)/营业总收入", "经营活动产生的现金流量净额(万元)",
-                                                       "经营活动产生的现金流量净额/净利润"), [(report_date, yyzsr, yylr, lrze, jlr,
-                                                                               yspj_yszk, yspj_yszk_yysr, jyhdxjllje,
-                                                                               jyhdxjllje_jlr)], header_format_str,
-                                                      value_format_str))
-    return;
+    # 经营活动产生的现金流量净额/净利润
+    jyhdxjllje_jlr = common_util.cal_percent(jyhdxjllje, jlr) if isinstance(jyhdxjllje,
+                                                                            (int)) and jyhdxjllje != 0 else '--'
+    # 销售商品、提供劳务收到的现金/营业收入
+    xssptglwxj_yysr = common_util.cal_percent(xssptglwxj, yyzsr) if isinstance(xssptglwxj,
+                                                                               (int)) and xssptglwxj != 0 else '--'
+
+    if tb == "N":
+        return (report_date, yyzsr, yylr, lrze, jlr, yspj_yszk, yspj_yszk_yysr, jyhdxjllje, jyhdxjllje_jlr, xssptglwxj,
+                xssptglwxj_yysr);
+    else:
+        last_year_report_date = get_last_year_report_date(report_date)
+        (report_date_last, yyzsr_last, yylr_last, lrze_last, jlr_last, yspj_yszk_last, yspj_yszk_yysr_last,
+         jyhdxjllje_last, jyhdxjllje_jlr_last, xssptglwxj_last,
+         xssptglwxj_yysr_last) = get_tup_ylnl(last_year_report_date, "N")
+        yyzsrtb = common_util.cal_percent(yyzsr, yyzsr_last, increase="Y")
+        jlrtb = common_util.cal_percent(jlr, jlr_last, increase="Y")
+        result_tb = (report_date, yyzsrtb, jlrtb)
+        return result_tb;
 
 
-#########################################################################################################
+##########################################################################################################################################################
 
 # 获取资产相关数据
 def get_zc(report_date):
@@ -151,7 +213,7 @@ def get_zc(report_date):
                                     zcfzb_dict["资产"]["非流动资产"]["可供出售金融资产(万元)"][report_date])
     zxjlzc1 = (hbzj if isinstance(hbzj, (int)) else 0) + (jyxjrzc if isinstance(jyxjrzc, (int)) else 0) + (
         kzcsjrzc if isinstance(kzcsjrzc, (int)) else 0)
-    zxjlzc = zxjlzc1 if isinstance(zxjlzc1, (int)) and zxjlzc1 > 0 else '--'
+    zxjlzc = zxjlzc1 if isinstance(zxjlzc1, (int)) and zxjlzc1 != 0 else '--'
     return hbzj, zxjlzc, zzc, jzc, gdzc, ch, sy, yspj, yszk
 
 
@@ -160,14 +222,23 @@ def get_fz(report_date):
     zfz_str = zcfzb_dict["负债"]["非流动负债"]["负债合计(万元)"][report_date]
     zfz, = trans_money(zfz_str)
     # 有息负债 = 长期借款 + 短期借款 + 应付债券
-    cqjk, dqjk, yfzq, cqdysyfz = trans_money(zcfzb_dict["负债"]["非流动负债"]["长期借款(万元)"][report_date],
-                                             zcfzb_dict["负债"]["流动负债"]["短期借款(万元)"][report_date],
-                                             zcfzb_dict["负债"]["非流动负债"]["应付债券(万元)"][report_date],
-                                             zcfzb_dict["负债"]["非流动负债"]["长期递延收益(万元)"][report_date])
+    cqjk, dqjk, yfzq, cqdysyfz, ynndqfldfz = trans_money(zcfzb_dict["负债"]["非流动负债"]["长期借款(万元)"][report_date],
+                                                         zcfzb_dict["负债"]["流动负债"]["短期借款(万元)"][report_date],
+                                                         zcfzb_dict["负债"]["非流动负债"]["应付债券(万元)"][report_date],
+                                                         zcfzb_dict["负债"]["非流动负债"]["长期递延收益(万元)"][report_date],
+                                                         zcfzb_dict["负债"]["流动负债"]["一年内到期的非流动负债(万元)"][report_date])
     yxfz1 = (cqjk if isinstance(cqjk, (int)) else 0) + (dqjk if isinstance(dqjk, (int)) else 0) + (
         yfzq if isinstance(yfzq, (int)) else 0)
-    yxfz = yxfz1 if isinstance(yxfz1, (int)) and yxfz1 > 0 else '--'
-    return zfz, cqjk, dqjk, yfzq, yxfz, cqdysyfz
+    yxfz = yxfz1 if isinstance(yxfz1, (int)) and yxfz1 != 0 else '--'
+    # 负责总和 = 长期借款 + 短期借款 + 应付债券 + 一年内到期的非流动负债,  负债总和是刚性的， 和资产负债表中的负责总计不同，是负债总计的子集
+    fzzh = '--'
+    if isinstance(yxfz, (int)) and isinstance(ynndqfldfz, (int)):
+        fzzh = yxfz + ynndqfldfz
+    elif isinstance(yxfz, (int)) and not isinstance(ynndqfldfz, (int)):
+        fzzh = yxfz
+    elif not isinstance(yxfz, (int)) and isinstance((ynndqfldfz, (int))):
+        fzzh = ynndqfldfz
+    return zfz, cqjk, dqjk, yfzq, yxfz, cqdysyfz, ynndqfldfz, fzzh
 
 
 # 获取利润相关数据
@@ -180,7 +251,8 @@ def get_lr(report_date):
 # 获取现金流量相关数据.
 def get_xjll(report_date):
     jyhdxjllje, = trans_money(xjllb_dict["一、经营活动产生的现金流量"]["经营活动产生的现金流量净额(万元)"][report_date])
-    return jyhdxjllje,
+    xssptglwxj, = trans_money(xjllb_dict["一、经营活动产生的现金流量"]["销售商品、提供劳务收到的现金(万元)"][report_date])
+    return jyhdxjllje, xssptglwxj
 
 
 def assign_dict(code):
@@ -206,11 +278,46 @@ def get_one_record_dict(collection_name, code):
 def trans_money(*strs):
     result = ()
     for s in strs:
-        if s.find('-') > -1:
+        if s.find('--') > -1:
             result += (s,)
         else:
             result += (int(s.replace(',', '')),)
     return result
 
 
-main("603313", "20171231")
+def get_latest_season_date(year, mon):
+    result = ""
+    if mon >= 1 and mon <= 3:
+        result = str(year - 1) + "1231"
+    elif mon >= 4 and mon <= 6:
+        result = str(year) + "0331"
+    elif mon >= 7 and mon <= 9:
+        result = str(year) + "0630"
+    elif mon >= 10 and mon <= 12:
+        result = str(year) + "0930"
+    return result
+
+
+def get_last_season_date(season_date):
+    year = int(season_date[0:4])
+    month_day = season_date[4:8]
+    result = ""
+    if month_day == "0331":
+        result = str(year - 1) + "1231"
+    elif month_day == "0630":
+        result = str(year) + "0331"
+    elif month_day == "0930":
+        result = str(year) + "0630"
+    elif month_day == "1231":
+        result = str(year) + "0930"
+    return result
+
+
+# 同比， 计算去年同期的report_date
+def get_last_year_report_date(report_date):
+    if not str(report_date).isdigit():
+        return None
+    return str(int(report_date[0:4]) - 1) + report_date[4:8]
+
+
+main("300027", "season", 10)
