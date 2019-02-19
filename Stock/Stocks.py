@@ -74,7 +74,7 @@ class Stocks:
         stocks_list = file_handle.readlines()
         result = {}
         for stock in stocks_list:
-            result[stock.split(',')[0]] = stock.split(',')[1]
+            result[stock.split(',')[0]] = stock.split(',')[1].rstrip('\n')
         return result
 
     @classmethod

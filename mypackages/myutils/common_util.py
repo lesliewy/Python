@@ -26,3 +26,16 @@ def format_table(header_tup, value_tups, header_format_str, value_format_str):
     for value_tup in value_tups:
         result += value_format_str.format(value_tup) + "\n"
     return result
+
+
+def format_table_dict(val_dict, num_output):
+    if val_dict == None:
+        return;
+    result = ""
+    seq = 1
+    for key in val_dict:
+        if (seq > num_output):
+            break;
+        result += '{0:>10}{1:>20}{2:>10}\n'.format(seq, key, val_dict[key])
+        seq += 1
+    return result

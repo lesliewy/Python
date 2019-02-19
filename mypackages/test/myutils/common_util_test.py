@@ -53,3 +53,8 @@ class CommonUtilTest(unittest.TestCase):
                       ("20190631", 88777889, 23288, common_util.cal_percent(88777889, 23288))]
         format_table = common_util.format_table(header_tup, value_tups, header_format_str, value_format_str);
         logging.info(format_table)
+
+    def test_format_table_dict(self):
+        val_dict = {"000001_中国平安": "2.3%", "600231_烽火通信": "28%", "600832_益生股份": "8.9%", "000321_格力电器": "43.6%",
+                    "600888_美的集团": "19.7%"}
+        logging.info("\n" + common_util.format_table_dict(val_dict, 5))
