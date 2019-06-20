@@ -11,15 +11,16 @@ class _const:
           raise self.ConstCaseError('const name "%s" is not all uppercase' % name)
       self.__dict__[name] = value
 
-my_const = _const()
-
 ######## 日志
-my_const.LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-my_const.DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-my_const.LOG_FILE = '/Users/leslie/MyProjects/Data/Okooo/okparse.log'
+log = _const()
+log.LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+log.DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+log.LOG_FILE = '/Users/leslie/MyProjects/Data/Okooo/okparse.log'
+
 
 
 ######## URL
+my_const = _const()
 # 澳客单场url
 my_const.MATCH_URL_PRE = "http://www.okooo.com/danchang/"
 # 欧赔页面通过 ajax 获取博彩公司赔率.

@@ -2,29 +2,37 @@
 
 '''
 下载指定ok_url_date的单场页面: http://www.okooo.com/danchang/180504
-并解析，生成结果文件: match.dat
-比赛序号  联赛名称  主队  客队  主队得分  客队得分  match_id
+并解析，生成结果文件: match.dat,  格式为:
+比赛序号  联赛名称  主队  客队  主队得分  客队得分 比赛结果  match_id
 
 '''
 
+import logging
+import os
+import re
 from bs4 import BeautifulSoup
 from download import persist
-from utils import const
 from files import file_util
-import os
-import logging
-import re
+from utils import match_utils
+
+from utils import const
 
 # 日志
-logging.basicConfig(filename=const.my_const.LOG_FILE, level=logging.INFO, format=const.my_const.LOG_FORMAT,
-                    datefmt=const.my_const.DATE_FORMAT)
+logging.basicConfig(filename=const.log.LOG_FILE, level=logging.INFO, format=const.log.LOG_FORMAT,
+                    datefmt=const.log.DATE_FORMAT)
 
 
-def download_persist(ok_url_date, replace=True):
-    download_match(ok_url_date, replace)
-    persist_match(ok_url_date, replace)
+def main():
+    ok_url_date = "190504"
+    download_persist(ok_url_date, replace_match_html=False, replace_match_dat=True)
 
 
+def download_persist(ok_url_date, replace_match_html=True, replace_match_dat=True):
+    download_match(ok_url_date, replace_match_html)
+    persist_match(ok_url_date, replace_match_dat)
+
+
+# 根据日期来下载match.html
 def download_match(ok_url_date, replace=True):
     match_term_dir = os.path.join(const.my_const.LOCAL_DATA_DIR, ok_url_date)
     file_util.create_dir(match_term_dir)
@@ -37,6 +45,8 @@ def download_match(ok_url_date, replace=True):
     if content.find("没有对阵") > 0:
         file_util.delete_dir(match_term_dir)
 
+
+# 根据日期，来解析该日期的match.html, 并将结果存入match.dat
 def persist_match(ok_url_date, replace=True):
     html_path = get_match_html(ok_url_date)
     if not os.path.exists(html_path):
@@ -51,7 +61,7 @@ def persist_match(ok_url_date, replace=True):
     file_util.write_file(content, dat_path, 'w')
 
 
-# 返回所有 match 信息.
+# 从match.dat中获取所有 match 信息.
 def get_match(ok_url_date):
     full_match_dat = get_match_dat(ok_url_date)
     if not os.path.exists(full_match_dat):
@@ -76,16 +86,19 @@ def get_match(ok_url_date):
     return matches
 
 
+# match.html 本地绝对路径.
 def get_match_html(ok_url_date):
     match_dir = os.path.join(const.my_const.LOCAL_DATA_DIR, ok_url_date)
     return os.path.join(match_dir, const.my_const.MATCH_HTML)
 
 
+# match.dat 本地绝对路径
 def get_match_dat(ok_url_date):
     match_dir = os.path.join(const.my_const.LOCAL_DATA_DIR, ok_url_date)
     return os.path.join(match_dir, const.my_const.MATCH_DAT)
 
 
+# 解析match.html
 def __parse_match(filePath):
     logging.info("正在处理 " + filePath);
     f = open(filePath, 'r', encoding='utf-8')
@@ -121,28 +134,15 @@ def __parse_match(filePath):
             host_goals = tr_soup.select(' > td.tdfx.td6')[0].string.split('-')[0]
             # 客队进球数
             visiting_goals = tr_soup.select(' > td.tdfx.td6')[0].string.split('-')[1]
+            # 比赛结果
+            match_result = match_utils.get_match_result(host_goals, visiting_goals)
 
             # 格式化赋值.
-            lines += '{matchSeq:5s} {matchName:10s} {hostTeamName:10s} {visitingTeamName:10s} {hostGoals:5s} {visitingGoals:5s} {matchId:10s}'.format(
+            lines += '{matchSeq:5s} {matchName:10s} {hostTeamName:10s} {visitingTeamName:10s} {hostGoals:5s} {visitingGoals:5s} {matchResult:5s} {matchId:10s}'.format(
                 matchSeq=match_seq, matchName=match_name,
                 hostTeamName=host_team_name, visitingTeamName=visiting_team_name, hostGoals=host_goals,
-                visitingGoals=visiting_goals, matchId=ok_match_id) + "\n"
+                visitingGoals=visiting_goals, matchResult=match_result, matchId=ok_match_id) + "\n"
+    logging.info("处理完毕.")
     return lines
 
-
-def test_download_match():
-    ok_url_date = "180504"
-    download_match(ok_url_date)
-
-
-def test_persist_match():
-    persist_match('/Users/leslie/MyProjects/Data/Okooo/180504/match.html',
-                  '/Users/leslie/MyProjects/Data/Okooo/180504/match.dat')
-
-
-def test_get_match():
-    get_match("/Users/leslie/MyProjects/Data/Okooo/180504/match.dat")
-
-# test_download_match()
-# test_persist_match()
-# test_get_match()
+main()
