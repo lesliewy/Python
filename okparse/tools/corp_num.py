@@ -14,8 +14,8 @@ import datetime
 import json
 
 # 日志
-logging.basicConfig(filename=const.my_const.LOG_FILE, level=logging.INFO, format=const.my_const.LOG_FORMAT,
-                    datefmt=const.my_const.DATE_FORMAT)
+logging.basicConfig(filename=const.log.LOG_FILE, level=logging.INFO, format=const.log.LOG_FORMAT,
+                    datefmt=const.log.DATE_FORMAT)
 
 # 更新博彩公司编号信息.
 def gen_corp_num_dat(match_id, ok_url_date):
@@ -39,7 +39,7 @@ def downloadOdds(match_id, ok_url_date):
     file_util.create_dir(url_date_dir)
 
     headers = {"Referer": "http://www.okooo.com/soccer/match/1021841/odds/",
-               "Cookie": "LastUrl=; __utmc=56961525; __utmz=56961525.1528613715.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); Hm_lvt_5ffc07c2ca2eda4cc1c4d8e50804c94b=1528613716; FirstOKURL=http%3A//www.okooo.com/danchang/; First_Source=www.okooo.com; PHPSESSID=3066e165eae588bbf6fa9e57acb5e615095e4bd6; OkAutoUuid=7159b688a7318d84d715696732bee028; OkMsIndex=4; isInvitePurview=0; IMUserID=9077087; IMUserName=abcdwy1; DRUPAL_LOGGED_IN=Y; UWord=d461d8cd987f00b204e9800998ecf84727e; __utma=56961525.109803555.1528613715.1529733295.1529735348.8; Hm_lpvt_5ffc07c2ca2eda4cc1c4d8e50804c94b=1529736243; __utmb=56961525.7.8.1529736243418",
+               "Cookie": "PHPSESSID=816c865d2d9ccb9141cb45ca88126c2a073bfd29; LastUrl=; __utmc=56961525; __utmz=56961525.1560151033.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); Hm_lvt_5ffc07c2ca2eda4cc1c4d8e50804c94b=1560151034; FirstOKURL=http%3A//www.okooo.com/danchang/; First_Source=www.okooo.com; pm=; IMUserID=9077087; IMUserName=abcdwy1; OkAutoUuid=67e3661bbc2745bcdc9a2453aff993b5; OkMsIndex=5; OKSID=816c865d2d9ccb9141cb45ca88126c2a073bfd29; M_UserName=%22abcdwy1%22; M_UserID=9077087; M_Ukey=77baf1ba6eb3e183bb03832b1db982ee; OkTouchAutoUuid=67e3661bbc2745bcdc9a2453aff993b5; OkTouchMsIndex=5; isInvitePurview=0; __utma=56961525.2121983609.1560151033.1560930306.1560930306.29; Hm_lpvt_5ffc07c2ca2eda4cc1c4d8e50804c94b=1560996973; __utmb=56961525.500.9.1561007176990",
                }
 
     odds_url_matchid_rep = const.my_const.ODDS_EMBEDED_TEMPLATE_URL.replace('{matchId}', str(match_id));
@@ -104,4 +104,4 @@ def __merge_corp_num(corps_num_dict):
     return
 
 
-# gen_corp_num_dat("1005809", "180504");
+gen_corp_num_dat("1005809", "180504");

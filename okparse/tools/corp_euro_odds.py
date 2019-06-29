@@ -17,16 +17,14 @@ from utils import const
 EURO_ODDS_ALL_TEMPLATE_URL = "http://www.okooo.com/soccer/match/{matchId}/odds/change/{corpNo}/"
 
 # 日志
-logging.basicConfig(filename=const.my_const.LOG_FILE, level=logging.INFO, format=const.my_const.LOG_FORMAT,
-                    datefmt=const.my_const.DATE_FORMAT)
+logging.basicConfig(filename=const.log.LOG_FILE, level=logging.INFO, format=const.log.LOG_FORMAT,
+                    datefmt=const.log.DATE_FORMAT)
 
 
 # 下载并解析某家博彩公司的欧赔数据.
-def download_persist(ok_url_date, match_id, corp_no, match_seq=None, replace=False):
-    existed = download_euro_odds_all(ok_url_date, match_id, corp_no, match_seq, replace)
-    if existed:
-        return existed
-    existed = persist_euro_odds_all(ok_url_date, match_id, corp_no, match_seq, replace)
+def download_persist(ok_url_date, match_id, corp_no, match_seq=None, replace_match_html=True, replace_match_dat=True):
+    download_euro_odds_all(ok_url_date, match_id, corp_no, match_seq, replace_match_html)
+    existed = persist_euro_odds_all(ok_url_date, match_id, corp_no, match_seq, replace_match_dat)
     return existed
 
 
@@ -189,8 +187,8 @@ def __parse_euro_odds_all(file_path):
             kellyHost=kelly_host, kellyEven=kelly_even, kellyVisiting=kelly_visiting, compensate=compensate) + "\n"
     return lines
 
-
-# download_euro_odds_all("180504", "1022465", "82")
+#download_persist("190504", "1059666", "82", "66", replace_match_html=False, replace_match_dat=False)
+#download_euro_odds_all("180504", "1022465", "82")
 # persist_euro_odds_all("/Users/leslie/MyProjects/Data/Okooo/180504/corpEuroOdds/1022465_82.html",
 #                      "/Users/leslie/MyProjects/Data/Okooo/180504/corpEuroOdds/1022465_82.dat")
 

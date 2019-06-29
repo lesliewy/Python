@@ -23,7 +23,7 @@ logging.basicConfig(filename=const.log.LOG_FILE, level=logging.INFO, format=cons
 
 
 def main():
-    ok_url_date = "190504"
+    ok_url_date = "180504"
     download_persist(ok_url_date, replace_match_html=False, replace_match_dat=True)
 
 
