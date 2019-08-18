@@ -64,6 +64,8 @@ def persis_file_times(url, full_file_path, file_size=0):
 def get_response(url, method='GET', data=None, encoding="utf8", withUserAgent=False, headers=None):
     try:
         # 构建请求的request
+        if not headers:
+            headers = {}
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
 
         # 某些网站禁止爬虫，需要模拟浏览器访问.
