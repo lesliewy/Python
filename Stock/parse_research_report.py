@@ -4,12 +4,13 @@
 '''
 
 import json
+import logging
+import os
 from datetime import date
 
 from bs4 import BeautifulSoup
 from download import persist
-
-from Stocks import *
+from Stock import Stocks
 
 key_words = ['龙头', '领先', '行业第']
 
@@ -171,7 +172,7 @@ def sort_file(file_path):
 
 
 # 概念板块对应的code
-# notion_dict = parse_notion_code(notion_code_file)
+notion_dict = parse_notion_code(notion_code_file)
 
 
 def main():

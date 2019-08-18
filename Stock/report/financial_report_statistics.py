@@ -1,5 +1,5 @@
-from Stocks import *
-from report import report_utils
+from ..Stocks import *
+from ..report import report_utils
 
 
 # 资产负债率
