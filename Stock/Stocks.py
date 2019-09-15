@@ -4,6 +4,7 @@ import logging
 import os
 import urllib.request
 
+import Constants
 '''
    东方财富 - 数据中心 - 个股资金流 - 沪深A股
    获取股票的code
@@ -11,9 +12,10 @@ import urllib.request
 
 
 # 日志
-# LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-# DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-# logging.basicConfig(filename='parse.log', level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+logging.basicConfig(filename=Constants.LOG_PATH + "/" + 'stocks.log', level=logging.INFO, format=LOG_FORMAT,
+                    datefmt=DATE_FORMAT)
 
 
 class Stocks:
@@ -21,7 +23,8 @@ class Stocks:
     url_base = 'http://nufm.dfcfw.com/EM_Finance2014NumericApplication/JS.aspx/JS.aspx?type=ct&st=(' \
                'BalFlowMain)&sr=-1&p=$$&ps=100&token=894050c76af8597a853f5b408b759f5d&cmd=C._A&sty=DCFFITA&rt=50651072 '
 
-    local_file = '/Users/leslie/MyProjects/GitHub/Python/Stock/stock.data'
+    # local_file = '/Users/leslie/MyProjects/GitHub/Python/Stock/stock.data'
+    local_file = Constants.DATA_PATH + '/' + 'stock.data'
 
     @classmethod
     def parse_stock_page(cls, page):
@@ -37,7 +40,7 @@ class Stocks:
         return result
 
     @classmethod
-    def persist_stocks_url(cls):
+    def __persist_stocks_url(cls):
         file_handle = open(cls.local_file, 'w')
         for i in range(1, 50):
             url = cls.url_base.replace('$$', str(i))
@@ -59,8 +62,9 @@ class Stocks:
         if not os.path.isfile(cls.local_file):
             logging.info(cls.local_file + " 文件不存在")
             return None
-        file_handle = open('stock.data', 'r')
+        file_handle = open(cls.local_file, 'r')
         stocks_list = file_handle.readlines()
+        file_handle.close()
         result = []
         for stock in stocks_list:
             result.append(stock.split(',')[0])
@@ -80,7 +84,7 @@ class Stocks:
 
     @classmethod
     def get_code_from_url(cls):
-        cls.persist_stocks_url()
+        cls.__persist_stocks_url()
         return cls.get_code_from_file()
 
     @classmethod
