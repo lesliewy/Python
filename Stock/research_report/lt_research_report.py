@@ -14,6 +14,7 @@ from files import file_util
 
 import Constants
 from Stock.Stocks import Stocks
+from bk import bk_stock_map
 
 # 日志
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
@@ -40,6 +41,13 @@ notion_code_file = Constants.DATA_PATH + '/' + 'notion_code.data'
 
 today = date.today().isoformat()
 today_dir = Constants.DATA_PATH + '/' + today
+
+# 获取代码-名称对应关系.
+code_name_dict = Stocks.get_code_name_dict_from_file()
+
+# 获取板块-股票对应关系
+industry_bk_json = bk_stock_map.get_json_from_file(bk_stock_map.industry_json_file)
+notion_bk_json = bk_stock_map.get_json_from_file(bk_stock_map.notion_json_file)
 
 
 # 解析概念板块
@@ -106,13 +114,6 @@ def persist_file(url, file, encoding):
 '''
 
 
-# 获取所有的code
-def get_codes():
-    codes = Stocks.get_codes()
-    logging.info("获取code数: " + str(len(codes)))
-    return codes
-
-
 # 解析研报
 def parse_research_report(code):
     research_json = get_research_files(code)
@@ -150,11 +151,17 @@ def parse_research_report(code):
     soup = BeautifulSoup(html_file, 'html5lib')  # html.parser   html5lib  lxml
 
     # 名称
-    stock_name_long = soup.select('#s1-tab > li.at')[0].string
-    stock_name = stock_name_long[0:stock_name_long.find('(')]
+    #    stock_name_long = soup.select('#s1-tab > li.at')[0].string
+    #    stock_name = stock_name_long[0:stock_name_long.find('(')]
+    stock_name = code_name_dict.get(code)
+    if not stock_name:
+        stock_name = "----"
 
     # 行业
-    industry = soup.select('#s1-tab > li:nth-of-type(2)')[0].string.replace('研报', '')
+    # industry = soup.select('#s1-tab > li:nth-of-type(2)')[0].string.replace('研报', '')
+    industry = bk_stock_map.get_industry_by_code(code, industry_bk_json)
+    if not industry:
+        industry = "--"
 
     # 保存至文件
     industry_file_path = today_dir + '/' + research_industry_result_file
@@ -165,7 +172,7 @@ def parse_research_report(code):
 
     notion_file_path = today_dir + '/' + research_notion_result_file
     notion_file_handle = open(notion_file_path, 'a')
-    notion_names = notion_dict.get(code)
+    notion_names = bk_stock_map.get_notions_by_code(code, notion_bk_json)
     if notion_names:
         for notion_name in notion_names:
             notion_content = notion_name + ',' + code + ',' + stock_name + ',' + str(calc_dict) + "\n"
@@ -187,11 +194,11 @@ def sort_file(file_path):
 
 
 # 概念板块对应的code
-notion_dict = parse_notion_code(notion_code_file)
+# notion_dict = parse_notion_code(notion_code_file)
 
 
 def main():
-    codes = get_codes()
+    codes = Stocks.get_codes()
     # codes = ['002707']
     index = 0
     # 先删掉

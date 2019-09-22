@@ -14,7 +14,6 @@ from mystring import string_util
 
 import Constants
 
-# 日志
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
 logging.basicConfig(filename=Constants.LOG_PATH + "/" + 'industry.log', level=logging.INFO, format=LOG_FORMAT,
@@ -25,6 +24,10 @@ sidemenu_json_url = 'http://quote.eastmoney.com/config/sidemenu.json'
 # 从此url获取指定板块下的个股  pn: 页数, pz: 每页显示数, $$ 是板块代码,从sidemenu_json_url中获取
 # pz 设为100， 最多取100只个股.
 bk_stocks_url = "http://6.push2.eastmoney.com/api/qt/clist/get?cb=jQuery112406913066009338764_1567918600091&pn=1&pz=100&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&fid=f3&fs=b:$$&fields=f12,f14&_=1567918600092"
+
+# 板块-股票对应关系的本地文件
+industry_json_file = Constants.DATA_PATH + '/' + 'industry.json'
+notion_json_file = Constants.DATA_PATH + '/' + 'notion.json'
 
 
 # 左侧菜单中沪深板块json, 是最原始的数据
@@ -104,7 +107,6 @@ def get_board_json(all_bks):
 def persist_boards_stocks():
     industry_json = get_industry_notion_json('行业')
     industry_bk_json = get_board_json(industry_json['next'])
-    industry_json_file = Constants.DATA_PATH + '/' + 'industry.json'
     if not os.path.exists(industry_json_file):
         file_util.write_file(
             json.dumps(industry_bk_json, skipkeys=False, check_circular=True, sort_keys=False),
@@ -114,10 +116,43 @@ def persist_boards_stocks():
 
     notion_json = get_industry_notion_json('概念')
     notion_bk_json = get_board_json(notion_json['next'])
-    notion_json_file = Constants.DATA_PATH + '/' + 'notion.json'
     if not os.path.exists(notion_json_file):
         file_util.write_file(
             json.dumps(notion_bk_json, skipkeys=False, check_circular=True, sort_keys=False),
             notion_json_file,
             'w'
         )
+
+
+# 根据code查询该股票所属行业
+def get_industry_by_code(code, bk_json=None):
+    if string_util.is_any_blank(code):
+        return None
+    if not bk_json:
+        bk_json = get_json_from_file(industry_json_file)
+    for item in bk_json:
+        if not item["stocks"]:
+            continue
+        if list(filter(lambda x: x["f12"] == code, item["stocks"])):
+            return item["title"]
+
+
+# 根据code查询该股票所属的所有概念，返回列表.
+def get_notions_by_code(code, bk_json=None):
+    if string_util.is_any_blank(code):
+        return None
+    if not bk_json:
+        bk_json = get_json_from_file(notion_json_file)
+    result = []
+    for item in bk_json:
+        if not item["stocks"]:
+            continue
+        if list(filter(lambda x: x["f12"] == code, item["stocks"])):
+            result.append(item["title"])
+    return result
+
+
+def get_json_from_file(json_file):
+    json_str = file_util.read_file(json_file)
+    bk_json = json.loads(json_str)
+    return bk_json

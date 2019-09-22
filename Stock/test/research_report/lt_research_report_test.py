@@ -14,6 +14,15 @@ class MyTestCase(unittest.TestCase):
     def test_parse_research_report(self):
         lt_research_report.parse_research_report('000001')
 
+    def test_sort_file(self):
+        industry_report_file = '/home/leslie/myprojects/GitHub/Python/Stock/data/2019-09-22/research_industry_report.data'
+        lt_research_report.sort_file(industry_report_file);
+
+        notion_report_file = '/home/leslie/myprojects/GitHub/Python/Stock/data/2019-09-22/research_notion_report.data'
+        lt_research_report.sort_file(notion_report_file);
+
+    def test_main(self):
+        lt_research_report.main()
 
 
 if __name__ == '__main__':
