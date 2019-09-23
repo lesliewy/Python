@@ -1,8 +1,18 @@
 import logging
-
+import os
 from bs4 import BeautifulSoup
 from download import persist
 from mystring import string_util
+
+
+### 获取指定html文件的soup.
+def get_soup_file(file_path):
+    if not os.path.exists(file_path):
+        return None
+    f = open(file_path, 'r', encoding='UTF-8')
+    soup = BeautifulSoup(f, 'html5lib')  # html.parser   html5lib  lxml
+    f.close()
+    return soup
 
 
 ###

@@ -4,6 +4,8 @@ Backup/
 Stock/2018*
 Stock/data
 Stock/log
+mytools/log
+mytools/wx/data
 mypackages/**/*.log
 *.log
 __pycache__/
