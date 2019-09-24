@@ -41,10 +41,14 @@ def persist_gzh_from_file(gzh_url_file):
     if string_util.is_any_blank(gzh_url_file) or not os.path.exists(gzh_url_file):
         logging.error("文件未指定或指定的文件不存在: %s", gzh_url_file)
         return
+    '''
     if not can_persist_gzh():
         logging.error("请确保目标目录是空目录: %s", constants.WX_GZH_DATA_DIR)
         return
+    '''
     lines = file_util.read_file(gzh_url_file, mode='L')
+    num = 0
+    num_of_download_total = 0
     for line in lines:
         if string_util.is_any_blank(line):
             continue
@@ -54,10 +58,14 @@ def persist_gzh_from_file(gzh_url_file):
 
         # 下载图片，保存新的html
         soup = sombrero.get_soup_file(temp_html)
-        process_img(soup, article_date)
+        num_of_download = process_img(soup, article_date)
+        num_of_download_total = num_of_download_total + num_of_download
 
         # 删除temp.html
         os.remove(temp_html)
+
+        num = num + 1
+    logging.info("本次共处理了 %s 条记录, 其中下载图片: %s 次", num, num_of_download_total)
     return
 
 
@@ -71,25 +79,30 @@ def persist_gzh_html(url, article_date):
 
     temp_html_path = article_dir + 'temp.html'
     persist.persist_file(url, temp_html_path)
+
     return temp_html_path
 
 
-# 下载图片，并修改html中<img> 添加 src, 指向本地文件.
+# 下载图片，并修改html中<img> 添加 , 指向本地文件.
 def process_img(soup, article_date):
     imgs = soup.find_all('img', attrs={"data-src": True})
     title = get_gzh_title(soup)
     # 新建目录，如: 2018/10
     article_dir, img_dir = __create_dir__(article_date, title)
     img_num = 0
+    num_of_download = 0
     for img in imgs:
         # 获取图片.
         img_url = img['data-src']
         if not img_url:
             continue
         img_file_name = '640_' + str(img_num)
-        img_full_path = os.path.join(img_dir, img_file_name)
-        persist.retrieve_by_url(img_url, img_full_path)
         img_num = img_num + 1
+        img_full_path = os.path.join(img_dir, img_file_name)
+        if os.path.exists(img_full_path):
+            continue
+        persist.retrieve_by_url(img_url, img_full_path)
+        num_of_download = num_of_download + 1
 
         # html中添加src
         img['src'] = './' + img_dir.split('/')[-2] + '/' + img_file_name
@@ -98,7 +111,7 @@ def process_img(soup, article_date):
     # 保存修改过的html
     html_file_path = os.path.join(article_dir, title + '.html')
     sombrero.persist_soup(soup, html_file_path)
-    return
+    return num_of_download
 
 
 # 解析公众号html获取标题.
