@@ -60,6 +60,11 @@ def persis_file_times(url, full_file_path, file_size=0):
     return os.path.isfile(full_file_path) and os.path.getsize(full_file_path) > file_size;
 
 
+# 直接获取文件. 可以直接下载图片.
+def retrieve_by_url(url, file_path, call_back=None):
+    urllib.request.urlretrieve(url, file_path, call_back)
+
+
 # 获取指定url的内容.
 def get_response(url, method='GET', data=None, encoding="utf8", withUserAgent=False, headers=None):
     try:

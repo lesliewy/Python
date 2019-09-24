@@ -30,6 +30,12 @@ def get_soup(url, full_file_path, file_size=0):
     return f, soup
 
 
+# 将soup保存为文件.
+def persist_soup(soup, file_full_path):
+    with open(file_full_path, 'w', encoding='utf-8') as fp:
+        fp.write(soup.prettify())
+
+
 ###
 #  获取指定selector 下的文字.
 ###

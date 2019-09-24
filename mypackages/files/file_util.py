@@ -18,11 +18,19 @@ def delete_dir(dir_path):
     shutil.rmtree(dir_path)
 
 
-# 读文件
-def read_file(file_path):
+# 读文件 mode-A: 直接读取文件内容, 返回文件内容.  mode-L: 行模式，一次读取一行，返回列表，
+def read_file(file_path, mode='A'):
     with open(file_path) as f:
-        content = f.read()
-    return content
+        if mode == 'A':
+            result = f.read()
+        elif mode == 'L':
+            result = []
+            while True:
+                l = f.readline()
+                if not l:
+                    break;
+                result.append(l)
+    return result
 
 
 # 写文件
@@ -57,6 +65,5 @@ def get_files(dir, parent_name_reg=None, file_name_reg=None):
             if dir_result:
                 result.extend(dir_result)
         return result;
-
 
 # print(get_files("/Users/leslie/MyProjects/Data/temp"))
