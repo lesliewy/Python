@@ -6,7 +6,7 @@
        第一步: 获取所有文章的url
            1, Windows 电脑端打开待下载公众号的历史信息列表，下滑获取待下载的公众号文章;
            2, 右击查看源码，copy所有保存为 gzh_list.html
-           3, 使用 shell/getURLFromjs.sh 从gzh_list.html 中解析出所有的文章url 以及 日期, 保存为 gzh_urls.data, 内容格式为:20180104 http:weixin.qq.com/.....
+           3, 使用 gen_gzh_urls 解析出所有的文章url 以及 日期, 保存到 gzh_urls.data, 内容格式为:20180104 title http:weixin.qq.com/.....
        第二步: 解析gzh_urls.data, 并下载文件, 包括其中的图片.
            1, 下载url指向的html;
            2, 解析html, 获取所有包含 data-src 属性的 <img>, 并下载图片;
