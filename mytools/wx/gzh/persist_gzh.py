@@ -33,6 +33,7 @@ logging.basicConfig(filename=constants.BASE_DIR + 'log/gzh.log', level=logging.I
 
 # 主流程
 def main():
+    logging.info("开始下载公众号文章...")
     persist_gzh_from_file(constants.WX_GZH_URL_FILE)
 
 
@@ -41,46 +42,60 @@ def persist_gzh_from_file(gzh_url_file):
     if string_util.is_any_blank(gzh_url_file) or not os.path.exists(gzh_url_file):
         logging.error("文件未指定或指定的文件不存在: %s", gzh_url_file)
         return
-    '''
+    # 交互式提醒.
     if not can_persist_gzh():
-        logging.error("请确保目标目录是空目录: %s", constants.WX_GZH_DATA_DIR)
-        return
-    '''
+        to_continue = input("存放公众号目录(wx/data/gzh/)非空, 确定是否继续(Y/N):")
+        if not to_continue == 'Y':
+            logging.info("存放公众号目录非空, 用户退出程序.")
+            return
     lines = file_util.read_file(gzh_url_file, mode='L')
     num = 0
-    num_of_download_total = 0
+    num_of_html_download_total = 0
+    num_of_img_download_total = 0
     for line in lines:
         if string_util.is_any_blank(line):
             continue
-        article_date, url = line.split(' ')
+        article_date, title, url = line.split(' ')
         logging.info("正在处理: %s", article_date)
-        temp_html = persist_gzh_html(url, article_date)
+        html, html_download_flag = persist_gzh_html(url, article_date, title)
+        if html_download_flag:
+            num_of_html_download_total = num_of_html_download_total + 1
 
         # 下载图片，保存新的html
-        soup = sombrero.get_soup_file(temp_html)
-        num_of_download = process_img(soup, article_date)
-        num_of_download_total = num_of_download_total + num_of_download
+        soup = sombrero.get_soup_file(html)
+        num_of_img_download = process_img(soup, article_date)
+        num_of_img_download_total = num_of_img_download_total + num_of_img_download
 
         # 删除temp.html
-        os.remove(temp_html)
+        if html.endswith("/temp.html"):
+            os.remove(html)
 
         num = num + 1
-    logging.info("本次共处理了 %s 条记录, 其中下载图片: %s 次", num, num_of_download_total)
+    logging.info("本次共处理了 %s 条记录, 其中下载html: %s 次, 下载图片: %s 次", num, num_of_html_download_total,
+                 num_of_img_download_total)
     return
 
 
 # 获取公众号文章html
-def persist_gzh_html(url, article_date):
+def persist_gzh_html(url, article_date, title=None):
     if string_util.is_any_blank(url, article_date):
         logging.error('url 不能为空.')
         return
+
     # 新建目录
     article_dir = __create_dir__(article_date)
 
+    download_flag = True
+    # 已经存在同名html，则不再下载.
     temp_html_path = article_dir + 'temp.html'
+    actural_html = article_dir + title + '.html'
+    if os.path.exists(actural_html):
+        download_flag = False
+        return actural_html, download_flag
+
     persist.persist_file(url, temp_html_path)
 
-    return temp_html_path
+    return temp_html_path, download_flag
 
 
 # 下载图片，并修改html中<img> 添加 , 指向本地文件.
@@ -109,8 +124,9 @@ def process_img(soup, article_date):
         # 删除 crossorigin
         del img['crossorigin']
     # 保存修改过的html
-    html_file_path = os.path.join(article_dir, title + '.html')
-    sombrero.persist_soup(soup, html_file_path)
+    if num_of_download > 0:
+        html_file_path = os.path.join(article_dir, title + '.html')
+        sombrero.persist_soup(soup, html_file_path)
     return num_of_download
 
 
@@ -130,10 +146,10 @@ def can_persist_gzh():
 
 
 # 新建文章目录，至月份; 如果传入title, 同时新建文章同名目录，用于存放该篇文章图片.
-# TODO 日期格式可能需要修改
+# 日期格式 2019年9月18日
 def __create_dir__(article_date, title=None):
     year = article_date[0:4]
-    mon = article_date[4:6]
+    mon = article_date[5:article_date.index('月')].rjust(2, '0')
     full_path = constants.WX_GZH_DATA_DIR + year + '/' + mon + '/'
     if not os.path.exists(full_path):
         file_util.create_dir(full_path)
