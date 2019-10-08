@@ -7,5 +7,6 @@ Stock/log
 mytools/log
 mytools/wx/data
 mypackages/**/*.log
+okparse/data
 *.log
 __pycache__/
