@@ -20,3 +20,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual('江苏苏宁', mat[3][1])
         self.assertEqual(4, mat[0]['host_goals'])
         self.assertTrue(len(mat['visiting_name']) == 528)
+
+    def test_my(self):
+        match_dat_file = os.path.join(DATA_DIR, '160303/match.dat')
+        average_odds.desc(match_dat_file)
