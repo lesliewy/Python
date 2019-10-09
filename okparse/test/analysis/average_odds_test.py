@@ -16,11 +16,11 @@ class MyTestCase(unittest.TestCase):
         self.assertIsNone(average_odds.get_data_from_match_dat(match_dat_file))
 
         match_dat_file = os.path.join(DATA_DIR, '160302/match.dat')
-        mat = average_odds.get_data_from_match_dat(match_dat_file)
+        mat = average_odds.get_data_from_match_dat(match_dat_file, exclude_unopen=False)
         self.assertEqual('江苏苏宁', mat[3][1])
         self.assertEqual(4, mat[0]['host_goals'])
         self.assertTrue(len(mat['visiting_name']) == 528)
 
-    def test_my(self):
-        match_dat_file = os.path.join(DATA_DIR, '160303/match.dat')
+    def test_desc(self):
+        match_dat_file = os.path.join(DATA_DIR, '160301/match.dat')
         average_odds.desc(match_dat_file)
