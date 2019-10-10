@@ -1,5 +1,5 @@
 """
-    从公众号号url文件中读取url，获取公众号内容，包括其中的图片。
+    从公众号号url文件中读取url，获取公众号内容，包括其中的图片，不包括视频。
     难点在获取图片，并将html中图片指向下载到本地的图片.
 
     整体过程:
@@ -13,6 +13,18 @@
            2, 解析html, 获取所有包含 data-src 属性的 <img>, 并下载图片;
            3, 去掉 <img> 中的 crossorigin 属性
            4, 更新html.
+
+    下载视频方法:
+        点击网页中的视频, 查看dev tools中的Network
+        A: 存在Media 链接: 直接下载mp4。 url 类似:  https://ugcbsy.qq.com/uwMROfz2r5zCIaQXGdGnC2dfJ7xVXKbtPOti4lz6jGfpFpyW/t0636ltb2lf.p712.1.mp4?sdtfrom=v1104&guid=66ca4980ca1034f46896af106118d0db&vkey=5C4A3E409CB821FA74DB69BFAC2DEE09E3EE470BBCDEDFD43772925BEFFA64B1586EF0B46FB5BA9CBD4BB151A671B73738EC6ABC1B11AFA4F65EB81C4DA93EBE85006B621C5A2B0A7976111EE5A45C3ED9E66CA234AA17B94C2FAA9FC9E8663D399C38E0074A4209513FC6F44162EAAF5CA087904990C3192446A18CEE1A2487
+           需要辨别广告的视频, 广告视频的url中通常有 p201.1.mp4
+
+        B: 不存在Media 链接: 无法直接下载.
+           xhr 中有多段url 名称类似: 016_l06412yotcz.321002.1.ts,   017_l06412yotcz.321002.1.ts, 033_l06412yotcz.321002.1.ts, 这些就是视频流.
+                               对应的url, 形如:  https://apd-be0c13e0bcddf434dcf46c5433ca1e0f.v.smtcdns.com/omts.tc.qq.com/AcsVhP4AdXV6vUcgLT6tgTtIyS4aloT5N8WCMLGLkXOQ/uwMROfz2r5zCIaQXGdGnC2df644Q3LWUuLvyGY4RMhgE_3T2/mjtAOVOu_-i-VqivMkhf8JXtII8HkboTg3vTs5Xxc_C5dNIrPiGP85EG4idaqgsSPQ4rEuXCpYhScAH8qPzs-ID0GS7IhpPkEQ3wCh8RslSQtznDQFVRLcXMIZUTgZ_X_dbJMixbKEmoivf0Um7jVdDWTy5wXsbnUQLyrxmIzJw/016_l06412yotcz.321002.1.ts?index=16&start=178360&end=191120&brs=12978392&bre=13769307&ver=4
+           下载去掉参数的url, 例如上面的，下载url:  https://apd-be0c13e0bcddf434dcf46c5433ca1e0f.v.smtcdns.com/omts.tc.qq.com/AcsVhP4AdXV6vUcgLT6tgTtIyS4aloT5N8WCMLGLkXOQ/uwMROfz2r5zCIaQXGdGnC2df644Q3LWUuLvyGY4RMhgE_3T2/mjtAOVOu_-i-VqivMkhf8JXtII8HkboTg3vTs5Xxc_C5dNIrPiGP85EG4idaqgsSPQ4rEuXCpYhScAH8qPzs-ID0GS7IhpPkEQ3wCh8RslSQtznDQFVRLcXMIZUTgZ_X_dbJMixbKEmoivf0Um7jVdDWTy5wXsbnUQLyrxmIzJw/016_l06412yotcz.321002.1.ts
+           如果是033_, 043_ 等较大的数字开头的，url最后的序号会有变化.
+                                   例如，会变成  https://apd-be0c13e0bcddf434dcf46c5433ca1e0f.v.smtcdns.com/omts.tc.qq.com/AcsVhP4AdXV6vUcgLT6tgTtIyS4aloT5N8WCMLGLkXOQ/uwMROfz2r5zCIaQXGdGnC2df644Q3LWUuLvyGY4RMhgE_3T2/mjtAOVOu_-i-VqivMkhf8JXtII8HkboTg3vTs5Xxc_C5dNIrPiGP85EG4idaqgsSPQ4rEuXCpYhScAH8qPzs-ID0GS7IhpPkEQ3wCh8RslSQtznDQFVRLcXMIZUTgZ_X_dbJMixbKEmoivf0Um7jVdDWTy5wXsbnUQLyrxmIzJw/016_l06412yotcz.321002.2.ts
 
 
 """
