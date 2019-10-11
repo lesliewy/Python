@@ -16,7 +16,7 @@ logging.basicConfig(filename=constants.BASE_DIR + 'log/gzh.log', level=logging.I
 
 
 def main():
-    article_list_html = '/Users/leslie/Temp1/2019/1010/算法与数据结构.html';
+    article_list_html = '/Users/leslie/Temp1/2019/1010/importnew.html';
     parse_gzh_list_html(article_list_html)
 
 
