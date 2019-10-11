@@ -16,7 +16,7 @@ logging.basicConfig(filename=constants.BASE_DIR + 'log/gzh.log', level=logging.I
 
 
 def main():
-    article_list_html = '/Users/leslie/Temp1/2019/0925/每天学点开车技巧.data.html';
+    article_list_html = '/Users/leslie/Temp1/2019/1010/算法与数据结构.html';
     parse_gzh_list_html(article_list_html)
 
 
@@ -31,14 +31,17 @@ def parse_gzh_list_html(file_path):
             return
     soup = sombrero.get_soup_file(file_path)
     article_tags = soup.find_all('div', attrs={"class": "weui_media_bd js_media"})
-    sep = ' '
     articles = []
     num = 0
     for article_tag in article_tags:
-        url = article_tag.select('h4')[0]['hrefs'].strip()
-        title = article_tag.select('h4')[0].contents[-1].strip()
+        logging.debug("正在处理: %s", article_tag)
+        h4_tag = article_tag.select('h4')
+        if not h4_tag:
+            continue
+        url = h4_tag[0]['hrefs'].strip()
+        title = h4_tag[0].contents[-1].strip()
         article_date = ''.join(article_tag.select('.weui_media_extra_info')[0].contents[0].strip())
-        articles.append(sep.join((article_date, title, url)))
+        articles.append(constants.WX_GZH_URL_FILE_SEP.join((article_date, title, url)))
         num = num + 1
     file_util.write_lines(articles, constants.WX_GZH_URL_FILE, 'w')
     logging.info('共解析文章数: %s 条', num)

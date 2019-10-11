@@ -8,3 +8,5 @@ WX_GZH_DATA_DIR = BASE_DIR + 'wx/data/gzh/'
 WX_GZH_URL_FILE = BASE_DIR + 'wx/data/' + "gzh_urls.data"
 # 公众号html零时文件，后续需要修改该文件，并重命名.
 # WX_GZH_HTML_TEMP = WX_GZH_DATA_DIR + 'temp.html'
+# 公众号标题、url文件中的分隔符
+WX_GZH_URL_FILE_SEP = '|$|'
