@@ -13,7 +13,8 @@ from download import persist
 from files import file_util
 
 import Constants
-from Stock.Stocks import Stocks
+from Stocks import Stocks
+# import Stocks
 from bk import bk_stock_map
 
 # 日志
@@ -214,9 +215,7 @@ def main():
         logging.info("正在处理: " + str(index) + " " + code)
         parse_research_report(code)
     # 对文件排序
-    industry_file_path = today + '/' + research_industry_result_file
     sort_file(industry_file_path)
-    notion_file_path = today + '/' + research_notion_result_file
     sort_file(notion_file_path)
 
     logging.info("Done.")

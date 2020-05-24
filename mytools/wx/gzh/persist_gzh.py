@@ -6,8 +6,9 @@
        第一步: 获取所有文章的url
            1, Windows 电脑端打开待下载公众号的历史信息列表，下滑获取待下载的公众号文章;
            2, 右击查看源码，copy所有保存为 gzh_list.html
-           3, 使用 gen_gzh_urls 解析出所有的文章url 以及 日期, 保存到 gzh_urls.data, 内容格式为:20180104 title http:weixin.qq.com/.....
            另外，这一步做到自动化，可以参考: https://blog.csdn.net/shsongtao/article/details/96104865, https://www.jianshu.com/p/fe565169abec
+           3, 使用 gen_gzh_urls 解析出所有的文章url 以及 日期, 保存到 gzh_urls.data, 内容格式为:20180104 title http:weixin.qq.com/.....
+
        第二步: 解析gzh_urls.data, 并下载文件, 包括其中的图片.
            1, 下载url指向的html;
            2, 解析html, 获取所有包含 data-src 属性的 <img>, 并下载图片;
@@ -26,6 +27,13 @@
            如果是033_, 043_ 等较大的数字开头的，url最后的序号会有变化.
                                    例如，会变成  https://apd-be0c13e0bcddf434dcf46c5433ca1e0f.v.smtcdns.com/omts.tc.qq.com/AcsVhP4AdXV6vUcgLT6tgTtIyS4aloT5N8WCMLGLkXOQ/uwMROfz2r5zCIaQXGdGnC2df644Q3LWUuLvyGY4RMhgE_3T2/mjtAOVOu_-i-VqivMkhf8JXtII8HkboTg3vTs5Xxc_C5dNIrPiGP85EG4idaqgsSPQ4rEuXCpYhScAH8qPzs-ID0GS7IhpPkEQ3wCh8RslSQtznDQFVRLcXMIZUTgZ_X_dbJMixbKEmoivf0Um7jVdDWTy5wXsbnUQLyrxmIzJw/016_l06412yotcz.321002.2.ts
             下载的文件是ts格式, windows 下用狸窝转换器可以转成mp4.
+
+    使用方法:
+      1，按上面第一步来获取文章的源码 gzh_list.html
+      2, 修改 gen_gzh_urls.py 的 main() 中的 article_list_html 的路径指向上一步中的gzh_list.html;
+      3, 执行gen_gzh_urls_test.py 中的 test_main() 方法, 会自动分析，输出保存在gzh_urls.data
+      4, 将之前公众号的文章保存在WX_GZH_DATA_DIR 指向的目录下，可以避免重复下载。  该目录下直接以年份开头.
+      5, 执行 persist_gzh_test.py 中的 test_main() 下载文章及图片.
 
 
 """
@@ -58,7 +66,7 @@ def persist_gzh_from_file(gzh_url_file):
         return
     # 交互式提醒.
     if not can_persist_gzh():
-        to_continue = input("存放公众号目录(wx/data/gzh/)非空, 确定是否继续(Y/N):")
+        to_continue = input("存放公众号目录(" + constants.WX_GZH_DATA_DIR + ")非空, 确定是否继续(Y/N):")
         if not to_continue == 'Y':
             logging.info("存放公众号目录非空, 用户退出程序.")
             return
@@ -120,6 +128,7 @@ def process_img(soup, article_date):
     article_dir, img_dir = __create_dir__(article_date, title)
     img_num = 0
     num_of_download = 0
+    soup_changed = False
     for img in imgs:
         # 获取图片.
         img_url = img['data-src']
@@ -130,16 +139,22 @@ def process_img(soup, article_date):
         img_full_path = os.path.join(img_dir, img_file_name)
         if os.path.exists(img_full_path):
             continue
-        persist.retrieve_by_url(img_url, img_full_path)
+        try:
+            persist.retrieve_by_url(img_url, img_full_path)
+        except Exception as e:
+            logging.error("存在异常，continue. %s", e)
+            continue
         num_of_download = num_of_download + 1
 
         # html中添加src
         img['src'] = './' + img_dir.split('/')[-2] + '/' + img_file_name
         # 删除 crossorigin
         del img['crossorigin']
+        soup_changed = True
     # 保存修改过的html
-    html_file_path = os.path.join(article_dir, title + '.html')
-    sombrero.persist_soup(soup, html_file_path)
+    if soup_changed:
+        html_file_path = os.path.join(article_dir, title + '.html')
+        sombrero.persist_soup(soup, html_file_path)
     return num_of_download
 
 
