@@ -32,8 +32,20 @@
       1，按上面第一步来获取文章的源码 gzh_list.html
       2, 修改 gen_gzh_urls.py 的 main() 中的 article_list_html 的路径指向上一步中的gzh_list.html;
       3, 执行gen_gzh_urls_test.py 中的 test_main() 方法, 会自动分析，输出保存在gzh_urls.data
-      4, 将之前公众号的文章保存在WX_GZH_DATA_DIR 指向的目录下，可以避免重复下载。  该目录下直接以年份开头.
+      4, 将之前公众号的文章保存在WX_GZH_DATA_DIR 指向的目录下，这样就可以避免重复下载。  该目录下直接以年份开头.
       5, 执行 persist_gzh_test.py 中的 test_main() 下载文章及图片.
+      6, 下载完之后, 先打一个原始包: tar -zcv -f Hollis_202006_202009.tar.gz Hollis.
+         因为ubuntu 的gnutar，对文件名中的某些字符在解压时会报错，需要处理下文件名. 在待处理目录的同级目录:
+         GitHub/webtest/myweb/src/test/shell/OtherUtils/special_filename.sh . wx
+         处理完后打包该目录: tar -zcv -f Hollis_202006_202009_process.tar.gz Hollis
+         最好放在Ubuntu上解压，速度快些.
+      现在(2020.12.27)windows上的微信客户端已经无法右击，查看源码了...
+
+    另一种方法:
+      1, 使用WeChatDownload.exe下载公众号文章.
+      2, rar打一个原始包;
+      3, pr.bat(百度云: MyInterests/公众号/pr.bat)处理下载之后的目录结构: start pr.bat f:\Temp\a\Docker中文社区。
+      4, 直接把整个目录copy至u盘，速度不慢.
 
 
 """

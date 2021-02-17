@@ -10,3 +10,4 @@ mypackages/**/*.log
 okparse/data
 *.log
 __pycache__/
+*.ipynb
